@@ -26,6 +26,7 @@ export default async (
   network: BaseNetwork,
   address: string
 ): Promise<Activity[]> => {
+  //prettier-ignore
   const networkName = network.name as keyof typeof NetworkEndpoints;
   const enpoint = NetworkEndpoints[networkName];
   const ttl = NetworkTtls[networkName];
@@ -44,18 +45,18 @@ export default async (
       .getTokenPrice(network.coingeckoID)
       .then((mdata) => (price = mdata || "0"));
   }
-
+  
   const groupActivities = activities.reduce((acc: any, activity: any) => {
     if (!acc[activity.requestKey]) {
       acc[activity.requestKey] = activity;
     }
-    if (activity.idx === 1) {
+    if (activity.idx !== 0) {
       acc[activity.requestKey] = activity;
     }
     return acc;
   }, {});
 
-  return Object.values(groupActivities).map((activity: any, i: number) => {
+  const returnedActivities = Object.values(groupActivities).map((activity: any, i: number) => {
     const rawAmount = toBase(
       activity.amount
         ? parseFloat(activity.amount).toFixed(network.decimals)
@@ -72,6 +73,7 @@ export default async (
     if (!toAccount && activity.crossChainAccount) {
       toAccount = activity.crossChainAccount;
     }
+
     return {
       nonce: i.toString(),
       from: fromAccount,
@@ -82,7 +84,7 @@ export default async (
       chainId: activity.chain.toString(),
       crossChainId: activity.crossChainId,
       status:
-        activity.idx === 1 ? ActivityStatus.success : ActivityStatus.failed,
+        activity.idx !== 0 ? ActivityStatus.success : ActivityStatus.failed,
       timestamp: new Date(activity.blockTime).getTime(),
       value: rawAmount,
       transactionHash: activity.requestKey,
@@ -97,4 +99,6 @@ export default async (
       },
     };
   });
+
+  return returnedActivities;
 };
