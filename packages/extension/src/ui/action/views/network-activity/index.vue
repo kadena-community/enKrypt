@@ -178,8 +178,6 @@ const getInfo = (activity: Activity, info: any, timer: any) => {
         })
         .then(() => updateVisibleActivity(activity));
     } else if (props.network.provider === ProviderName.kadena) {
-      //prettier-ignore
-      //@todo: kevin
       const kadenaInfo = info as KadenaRawInfo;
 
       activity.status =
