@@ -23,7 +23,7 @@ export abstract class KDABaseToken extends BaseToken {
     chainId: string
   ): Promise<ICommand>;
 
-  public abstract buildCrossChainTransaction(
+  public abstract buildCrossChainFirstStepTransaction(
     to: string,
     from: EnkryptAccount,
     amount: string,
@@ -31,6 +31,15 @@ export abstract class KDABaseToken extends BaseToken {
     fromChainId: string,
     toChainId: string
   ): Promise<ICommand>;
+
+  public abstract buildCrossChainSecondStepTransaction(
+    from: EnkryptAccount | any,
+    pactId: string,
+    spv: string,
+    useGasStation: boolean,
+    network: KadenaNetwork,
+    toChainId: string
+  ): Promise<IUnsignedCommand | ICommand>;
 
   public abstract getAccountDetails(
     account: string,
@@ -100,7 +109,7 @@ export class KDAToken extends KDABaseToken {
     return await this.signTransaction(unsignedTransaction, from);
   }
 
-  public async buildCrossChainTransaction(
+  public async buildCrossChainFirstStepTransaction(
     to: string,
     from: EnkryptAccount | any,
     amount: string,
@@ -145,6 +154,42 @@ export class KDAToken extends KDABaseToken {
       .createTransaction();
 
     return await this.signTransaction(unsignedTransaction, from);
+  }
+
+  public async buildCrossChainSecondStepTransaction(
+    from: EnkryptAccount | any,
+    pactId: string,
+    spv: string,
+    useGasStation: boolean,
+    network: KadenaNetwork,
+    toChainId: string
+  ): Promise<IUnsignedCommand | ICommand> {
+    const builder = Pact.builder
+      .continuation({
+        pactId: pactId,
+        proof: spv,
+        rollback: false,
+        step: 1,
+      })
+      .setMeta({
+        chainId: toChainId as ChainId,
+        senderAccount: useGasStation
+          ? "kadena-xchain-gas"
+          : network.displayAddress(from.address),
+        gasLimit: 850,
+      })
+      .setNetworkId(network.options.kadenaApiOptions.networkId);
+
+    if (useGasStation) {
+      return builder.createTransaction();
+    } else {
+      builder.addSigner(from.publicKey.replace("0x", ""), (withCap: any) => [
+        withCap("coin.GAS"),
+      ]);
+
+      const transaction = builder.createTransaction();
+      return await this.signTransaction(transaction, from);
+    }
   }
 
   private async signTransaction(

@@ -286,7 +286,7 @@ const validateFields = async () => {
               props.network,
               fromChainId
             )
-          : await selectedAsset.value.buildCrossChainTransaction!(
+          : await selectedAsset.value.buildCrossChainFirstStepTransaction!(
               addressTo.value,
               props.accountInfo.selectedAccount,
               sendMax.value
