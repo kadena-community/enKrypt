@@ -106,7 +106,9 @@ class API implements ProviderAPIInterface {
     _chainId?: string
   ): Promise<ICommandResult> {
     const chainId = _chainId === undefined ? await this.getChainId() : _chainId;
-    const client = createClient(this.getApiHost(chainId ?? await this.getChainId()));
+    const client = createClient(
+      this.getApiHost(chainId ?? (await this.getChainId()))
+    );
     return client.local(signedTranscation, options);
   }
 

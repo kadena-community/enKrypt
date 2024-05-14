@@ -57,7 +57,10 @@
 
       <div class="network-activity__transaction-amount">
         <a
-          v-if="activity.status === ActivityStatus.success && activity.crossChainId !== null"
+          v-if="
+            activity.status === ActivityStatus.success &&
+            activity.crossChainId !== null
+          "
           :href="continueUrl"
           target="_blank"
         >
@@ -162,7 +165,7 @@ const transactionURL = computed(() => {
 });
 const continueUrl = computed(() => {
   return `https://tools.kadena.io/transactions/cross-chain-transfer-finisher?reqKey=${props.activity.transactionHash}`;
-})
+});
 const getFiatValue = computed(() => {
   return new BigNumber(props.activity.token.price || "0").times(
     fromBase(props.activity.value, props.activity.token.decimals)

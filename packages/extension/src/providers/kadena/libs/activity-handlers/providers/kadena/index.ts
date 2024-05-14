@@ -7,7 +7,6 @@ import { toBase } from "@enkryptcom/utils";
 import KadenaAPI from "@/providers/kadena/libs/api";
 import { ChainId, Pact } from "@kadena/client";
 
-
 const getAddressActivity = async (
   address: string,
   endpoint: string,
@@ -48,7 +47,6 @@ export default async (
       .getTokenPrice(network.coingeckoID)
       .then((mdata) => (price = mdata || "0"));
   }
-
 
   const groupActivities = activities.reduce((acc: any, activity: any) => {
     if (!acc[activity.requestKey]) {
@@ -107,47 +105,61 @@ export default async (
     }
   );
 
-  await Promise.allSettled(activities.map(async (activity: any) => {
-    //prettier-ignore
-    if (activity.status === ActivityStatus.success && activity.crossChainId !== null) {
-      const fetchSpvResponse = await fetch(`${network.node}/testnet04/chain/${activity.chainId}/pact/spv`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestKey: activity.transactionHash,
-          targetChainId: String(activity.crossChainId),
-        })
-      })
+  await Promise.allSettled(
+    activities.map(async (activity: any) => {
+      if (
+        activity.status === ActivityStatus.success &&
+        activity.crossChainId !== null
+      ) {
+        const fetchSpvResponse = await fetch(
+          `${network.node}/testnet04/chain/${activity.chainId}/pact/spv`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              requestKey: activity.transactionHash,
+              targetChainId: String(activity.crossChainId),
+            }),
+          }
+        );
 
-      const spv = await fetchSpvResponse.json();
+        const spv = await fetchSpvResponse.json();
 
-      const tx = Pact.builder.continuation({
-        proof: spv,
-        data: {},
-        pactId: activity.transactionHash,
-        rollback: false,
-        step: 1
-      }).setMeta({
-        chainId: String(activity.rawInfo.crossChainId) as ChainId,
-        senderAccount: activity.from,
-      }).createTransaction();
+        const tx = Pact.builder
+          .continuation({
+            proof: spv,
+            data: {},
+            pactId: activity.transactionHash,
+            rollback: false,
+            step: 1,
+          })
+          .setMeta({
+            chainId: String(activity.rawInfo.crossChainId) as ChainId,
+            senderAccount: activity.from,
+          })
+          .createTransaction();
 
-      const networkApi = (await network.api()) as KadenaAPI
+        const networkApi = (await network.api()) as KadenaAPI;
 
-      const transactionResult = await networkApi.sendLocalTransaction(
-        tx,
-        { signatureVerification: false, preflight: false },
-        String(activity.rawInfo.crossChainId) as ChainId
-      );
+        const transactionResult = await networkApi.sendLocalTransaction(
+          tx,
+          { signatureVerification: false, preflight: false },
+          String(activity.rawInfo.crossChainId) as ChainId
+        );
 
-      if (transactionResult.result.status === "failure" &&
-        (transactionResult.result.error as any).message.includes("resumePact: pact completed")) {
-        activity.status = ActivityStatus.continued;
+        if (
+          transactionResult.result.status === "failure" &&
+          (transactionResult.result.error as any).message.includes(
+            "resumePact: pact completed"
+          )
+        ) {
+          activity.status = ActivityStatus.continued;
+        }
       }
-    }
-  }))
+    })
+  );
 
   return activities;
 };
