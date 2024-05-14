@@ -103,7 +103,7 @@ export default async (
     };
   });
 
-  activities.forEach(async (activity: any) => {
+  await Promise.allSettled(activities.map(async (activity: any) => {
     //prettier-ignore
     if (activity.status === ActivityStatus.success && activity.crossChainId !== null) {
       const fetchSpvResponse = await fetch("https://api.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact/spv", {
@@ -143,7 +143,7 @@ export default async (
         activity.status = ActivityStatus.continued;
       }
     }
-  })
+  }))
 
   return activities;
 };
