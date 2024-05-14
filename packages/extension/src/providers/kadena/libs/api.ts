@@ -102,7 +102,7 @@ class API implements ProviderAPIInterface {
 
   async sendLocalTransaction(
     signedTranscation: ICommand | IUnsignedCommand,
-    options?: { signatureVerification: boolean, preflight: boolean },
+    options?: { signatureVerification: boolean; preflight: boolean },
     _chainId?: string
   ): Promise<ICommandResult> {
     const chainId = _chainId === undefined ? await this.getChainId() : _chainId;

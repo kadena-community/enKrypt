@@ -88,7 +88,7 @@ enum ActivityStatus {
   pending = "pending",
   success = "success",
   failed = "failed",
-  continued = "continued"
+  continued = "continued",
 }
 
 enum ActivityType {

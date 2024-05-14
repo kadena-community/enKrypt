@@ -61,7 +61,7 @@
           :href="continueUrl"
           target="_blank"
         >
-          Finish tx {{ activity.status }}
+          Finish tx
         </a>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
