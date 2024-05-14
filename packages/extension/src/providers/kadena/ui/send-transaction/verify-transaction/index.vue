@@ -182,6 +182,7 @@ const sendAction = async () => {
       network: network.value.name,
       status: ActivityStatus.pending,
       chainId: fromChainId.value!,
+      crossChainId: parseInt(toChainId.value!),
       timestamp: new Date().getTime(),
       token: {
         decimals: txData.toToken.decimals,

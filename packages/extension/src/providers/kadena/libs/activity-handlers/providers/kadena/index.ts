@@ -49,6 +49,7 @@ export default async (
       .then((mdata) => (price = mdata || "0"));
   }
 
+
   const groupActivities = activities.reduce((acc: any, activity: any) => {
     if (!acc[activity.requestKey]) {
       acc[activity.requestKey] = activity;
@@ -59,49 +60,52 @@ export default async (
     return acc;
   }, {});
 
-  activities = Object.values(groupActivities).map((activity: any, i: number) => {
-    const rawAmount = toBase(
-      activity.amount
-        ? parseFloat(activity.amount).toFixed(network.decimals)
-        : "0",
-      network.decimals
-    );
-    // note: intentionally not using fromAccount === some-value
-    // I want to match both null and "" in fromAccount/toAccount
-    // actual values will be a (truthy) string
-    let { fromAccount, toAccount } = activity;
-    if (!fromAccount && activity.crossChainAccount) {
-      fromAccount = activity.crossChainAccount;
-    }
-    if (!toAccount && activity.crossChainAccount) {
-      toAccount = activity.crossChainAccount;
-    }
+  activities = Object.values(groupActivities).map(
+    (activity: any, i: number) => {
+      const rawAmount = toBase(
+        activity.amount
+          ? parseFloat(activity.amount).toFixed(network.decimals)
+          : "0",
+        network.decimals
+      );
 
-    return {
-      nonce: i.toString(),
-      from: fromAccount,
-      to: toAccount,
-      isIncoming: activity.fromAccount !== address,
-      network: network.name,
-      rawInfo: activity,
-      chainId: activity.chain.toString(),
-      crossChainId: activity.crossChainId,
-      status:
-        activity.idx !== 0 ? ActivityStatus.success : ActivityStatus.failed,
-      timestamp: new Date(activity.blockTime).getTime(),
-      value: rawAmount,
-      transactionHash: activity.requestKey,
-      type: ActivityType.transaction,
-      token: {
-        decimals: network.decimals,
-        icon: network.icon,
-        name: network.currencyNameLong,
-        symbol:
-          activity.token !== "coin" ? activity.token : network.currencyName,
-        price: price,
-      },
-    };
-  });
+      // note: intentionally not using fromAccount === some-value
+      // I want to match both null and "" in fromAccount/toAccount
+      // actual values will be a (truthy) string
+      let { fromAccount, toAccount } = activity;
+      if (!fromAccount && activity.crossChainAccount) {
+        fromAccount = activity.crossChainAccount;
+      }
+      if (!toAccount && activity.crossChainAccount) {
+        toAccount = activity.crossChainAccount;
+      }
+
+      return {
+        nonce: i.toString(),
+        from: fromAccount,
+        to: toAccount,
+        isIncoming: activity.fromAccount !== address,
+        network: network.name,
+        rawInfo: activity,
+        chainId: activity.chain.toString(),
+        crossChainId: activity.crossChainId,
+        status:
+          activity.idx !== 0 ? ActivityStatus.success : ActivityStatus.failed,
+        timestamp: new Date(activity.blockTime).getTime(),
+        value: rawAmount,
+        transactionHash: activity.requestKey,
+        type: ActivityType.transaction,
+        token: {
+          decimals: network.decimals,
+          icon: network.icon,
+          name: network.currencyNameLong,
+          symbol:
+            activity.token !== "coin" ? activity.token : network.currencyName,
+          price: price,
+        },
+      };
+    }
+  );
 
   await Promise.allSettled(activities.map(async (activity: any) => {
     //prettier-ignore

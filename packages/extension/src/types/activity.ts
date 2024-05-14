@@ -67,7 +67,8 @@ interface SubstrateRawInfo {
   asset_type: string;
 }
 
-type KadenaRawInfo = ICommandResult
+type KadenaRawInfo = ICommandResult;
+
 interface KadenaDBInfo {
   amount: string;
   blockHash: string;
