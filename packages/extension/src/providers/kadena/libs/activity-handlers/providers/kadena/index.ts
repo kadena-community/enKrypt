@@ -118,7 +118,6 @@ export default async (
       })
 
       const spv = await fetchSpvResponse.json();
-      activity.rawInfo.spvProof = spv;
 
       const tx = Pact.builder.continuation({
         proof: spv,
