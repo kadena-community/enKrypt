@@ -106,7 +106,7 @@ export default async (
   await Promise.allSettled(activities.map(async (activity: any) => {
     //prettier-ignore
     if (activity.status === ActivityStatus.success && activity.crossChainId !== null) {
-      const fetchSpvResponse = await fetch("https://api.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact/spv", {
+      const fetchSpvResponse = await fetch(`${network.node}/testnet04/chain/${activity.chainId}/pact/spv`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
