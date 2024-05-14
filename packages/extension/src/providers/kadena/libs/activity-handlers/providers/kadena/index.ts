@@ -4,6 +4,9 @@ import { Activity, ActivityStatus, ActivityType } from "@/types/activity";
 import { BaseNetwork } from "@/types/base-network";
 import { NetworkEndpoints, NetworkTtls } from "./configs";
 import { toBase } from "@enkryptcom/utils";
+import KadenaAPI from "@/providers/kadena/libs/api";
+import { ChainId, Pact } from "@kadena/client";
+
 
 const getAddressActivity = async (
   address: string,
@@ -30,7 +33,7 @@ export default async (
   const networkName = network.name as keyof typeof NetworkEndpoints;
   const enpoint = NetworkEndpoints[networkName];
   const ttl = NetworkTtls[networkName];
-  const activities = await getAddressActivity(
+  let activities = await getAddressActivity(
     address,
     enpoint,
     ttl,
@@ -45,7 +48,7 @@ export default async (
       .getTokenPrice(network.coingeckoID)
       .then((mdata) => (price = mdata || "0"));
   }
-  
+
   const groupActivities = activities.reduce((acc: any, activity: any) => {
     if (!acc[activity.requestKey]) {
       acc[activity.requestKey] = activity;
@@ -56,7 +59,7 @@ export default async (
     return acc;
   }, {});
 
-  const returnedActivities = Object.values(groupActivities).map((activity: any, i: number) => {
+  activities = Object.values(groupActivities).map((activity: any, i: number) => {
     const rawAmount = toBase(
       activity.amount
         ? parseFloat(activity.amount).toFixed(network.decimals)
@@ -100,5 +103,45 @@ export default async (
     };
   });
 
-  return returnedActivities;
+  activities.forEach(async (activity: any) => {
+    //prettier-ignore
+    if (activity.status === ActivityStatus.success && activity.crossChainId !== null) {
+      const fetchSpvResponse = await fetch("https://api.testnet.chainweb.com/chainweb/0.0/testnet04/chain/0/pact/spv", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestKey: activity.transactionHash,
+          targetChainId: String(activity.crossChainId),
+        })
+      })
+
+      const spv = await fetchSpvResponse.json();
+      activity.rawInfo.spvProof = spv;
+
+      const tx = Pact.builder.continuation({
+        proof: spv,
+        data: {},
+        pactId: activity.transactionHash,
+        rollback: false,
+        step: 1
+      }).setMeta({
+        chainId: String(activity.rawInfo.crossChainId) as ChainId,
+        senderAccount: activity.from,
+      }).createTransaction();
+
+      const networkApi = (await network.api()) as KadenaAPI
+
+      const transactionResult = await networkApi.sendLocalTransaction(
+        tx,
+        { signatureVerification: false, preflight: false},
+        String(activity.rawInfo.crossChainId) as ChainId
+      );
+
+      console.log({ transactionResult })
+    }
+  })
+
+  return activities;
 };
