@@ -101,7 +101,7 @@ class API implements ProviderAPIInterface {
   }
 
   async sendLocalTransaction(
-    signedTranscation: ICommand | IUnsignedCommand,
+    signedTransaction: ICommand | IUnsignedCommand,
     options?: { signatureVerification: boolean; preflight: boolean },
     _chainId?: string
   ): Promise<ICommandResult> {
@@ -109,7 +109,7 @@ class API implements ProviderAPIInterface {
     const client = createClient(
       this.getApiHost(chainId ?? (await this.getChainId()))
     );
-    return client.local(signedTranscation, options);
+    return client.local(signedTransaction, options);
   }
 
   async sendTransaction(
