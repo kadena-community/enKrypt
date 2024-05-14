@@ -134,11 +134,14 @@ export default async (
 
       const transactionResult = await networkApi.sendLocalTransaction(
         tx,
-        { signatureVerification: false, preflight: false},
+        { signatureVerification: false, preflight: false },
         String(activity.rawInfo.crossChainId) as ChainId
       );
 
-      console.log({ transactionResult })
+      if (transactionResult.result.status === "failure" &&
+        (transactionResult.result.error as any).message.includes("resumePact: pact completed")) {
+        activity.status = ActivityStatus.continued;
+      }
     }
   })
 
