@@ -68,11 +68,11 @@
     <send-process
       v-if="isProcessing"
       :is-done="isSendDone"
-      :is-nft="false"
       :to-address="txData.toAddress"
       :network="network"
       :token="txData.toToken"
       :is-window-popup="isWindowPopup"
+      :status="sendProcessStatus"
     />
   </div>
 </template>
@@ -88,7 +88,7 @@ import VerifyTransactionAmount from "@/providers/common/ui/verify-transaction/ve
 import VerifyTransactionFee from "@/providers/common/ui/verify-transaction/verify-transaction-fee.vue";
 import SendAlert from "../components/send-alert.vue";
 import HardwareWalletMsg from "@/providers/common/ui/verify-transaction/hardware-wallet-msg.vue";
-import SendProcess from "@action/views/send-process/index.vue";
+import SendProcess from "../components/send-process.vue";
 import PublicKeyRing from "@/libs/keyring/public-keyring";
 import { getCurrentContext } from "@/libs/messenger/extension";
 import { VerifyTransactionParams } from "../../types";
@@ -106,6 +106,7 @@ import KadenaAPI from "@/providers/kadena/libs/api";
 import { KadenaNetwork } from "@/providers/kadena/types/kadena-network";
 
 const isSendDone = ref(false);
+const sendProcessStatus = ref("");
 const account = ref<EnkryptAccount>();
 const fromChainId = ref<string>();
 const toChainId = ref<string>();
@@ -152,56 +153,16 @@ const close = () => {
 
 const sendAction = async () => {
   isProcessing.value = true;
+  isSendDone.value = false;
 
   try {
-    const transaction =
-      fromChainId.value == toChainId.value
-        ? await kdaToken.value!.buildSameChainTransaction!(
-            txData.toAddress,
-            account.value!,
-            txData.TransactionData.value,
-            network.value as KadenaNetwork,
-            fromChainId.value!
-          )
-        : await kdaToken.value!.buildCrossChainTransaction!(
-            txData.toAddress,
-            account.value!,
-            txData.TransactionData.value,
-            network.value as KadenaNetwork,
-            fromChainId.value!,
-            toChainId.value!
-          );
+    const isCrosschainTransaction = fromChainId.value !== toChainId.value;
 
-    const networkApi = (await network.value.api()) as KadenaAPI;
-    const transactionDescriptor = await networkApi.sendTransaction(transaction);
-
-    const txActivity: Activity = {
-      from: network.value.displayAddress(txData.fromAddress),
-      to: network.value.displayAddress(txData.toAddress),
-      isIncoming: txData.fromAddress === txData.toAddress,
-      network: network.value.name,
-      status: ActivityStatus.pending,
-      chainId: fromChainId.value!,
-      crossChainId: parseInt(toChainId.value!),
-      timestamp: new Date().getTime(),
-      token: {
-        decimals: txData.toToken.decimals,
-        icon: txData.toToken.icon,
-        name: txData.toToken.name,
-        symbol: txData.toToken.symbol,
-        price: txData.toToken.price,
-      },
-      type: ActivityType.transaction,
-      value: txData.toToken.amount,
-      transactionHash: transactionDescriptor.requestKey,
-    };
-
-    const activityState = new ActivityState();
-
-    await activityState.addActivities([txActivity], {
-      address: network.value.displayAddress(txData.fromAddress),
-      network: network.value.name,
-    });
+    if (isCrosschainTransaction) {
+      await sendCrossChainTransaction();
+    } else {
+      await sendSameChainTransaction();
+    }
 
     isSendDone.value = true;
 
@@ -218,10 +179,109 @@ const sendAction = async () => {
     }
   } catch (error: any) {
     isProcessing.value = false;
+    isSendDone.value = true;
+
     console.error("error", error);
     errorMsg.value = `Error: ${
       error.message || "Could not send the transaction"
     }`;
+  }
+};
+
+const sendSameChainTransaction = async () => {
+  const networkApi = (await network.value.api()) as KadenaAPI;
+  const transaction = await kdaToken.value!.buildSameChainTransaction!(
+    txData.toAddress,
+    account.value!,
+    txData.TransactionData.value,
+    network.value as KadenaNetwork,
+    fromChainId.value!
+  );
+
+  const { transactionDescriptor } = await networkApi.sendTransaction(
+    transaction
+  );
+
+  const txActivity: Activity = {
+    from: network.value.displayAddress(txData.fromAddress),
+    to: network.value.displayAddress(txData.toAddress),
+    isIncoming: txData.fromAddress === txData.toAddress,
+    network: network.value.name,
+    status: ActivityStatus.pending,
+    chainId: fromChainId.value!,
+    timestamp: new Date().getTime(),
+    token: {
+      decimals: txData.toToken.decimals,
+      icon: txData.toToken.icon,
+      name: txData.toToken.name,
+      symbol: txData.toToken.symbol,
+      price: txData.toToken.price,
+    },
+    type: ActivityType.transaction,
+    value: txData.toToken.amount,
+    transactionHash: transactionDescriptor.requestKey,
+  };
+
+  const activityState = new ActivityState();
+
+  await activityState.addActivities([txActivity], {
+    address: network.value.displayAddress(txData.fromAddress),
+    network: network.value.name,
+  });
+};
+
+const sendCrossChainTransaction = async () => {
+  const networkApi = (await network.value.api()) as KadenaAPI;
+
+  sendProcessStatus.value = `Cross chain transfer initiated on chain ${fromChainId.value}...`;
+
+  const transaction = await kdaToken.value!
+    .buildCrossChainFirstStepTransaction!(
+    txData.toAddress,
+    account.value!,
+    txData.TransactionData.value,
+    network.value as KadenaNetwork,
+    fromChainId.value!,
+    toChainId.value!
+  );
+
+  const { transactionDescriptor, commandResult } =
+    await networkApi.sendTransaction(transaction, undefined, true);
+
+  sendProcessStatus.value = "Done. Waiting for SPV proof...";
+
+  const spvResult = await networkApi.pollCreateSpv(
+    transactionDescriptor,
+    toChainId.value!
+  );
+
+  const senderBalanceToChain = await networkApi.getBalanceByChainId(
+    txData.fromAddress,
+    toChainId.value!
+  );
+
+  sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
+
+  try {
+    const secondStepTransaction = await kdaToken.value!
+      .buildCrossChainSecondStepTransaction!(
+      account.value!,
+      commandResult!.continuation!.pactId,
+      spvResult,
+      senderBalanceToChain == "0",
+      network.value as KadenaNetwork,
+      toChainId.value!
+    );
+
+    await networkApi.sendTransaction(
+      secondStepTransaction,
+      toChainId.value!,
+      true
+    );
+
+    sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
+  } catch (error: any) {
+    sendProcessStatus.value = `Please claim your coins on chain ${toChainId.value} manually.`;
   }
 };
 
