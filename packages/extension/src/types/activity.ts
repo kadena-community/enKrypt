@@ -67,8 +67,7 @@ interface SubstrateRawInfo {
   asset_type: string;
 }
 
-type KadenaRawInfo = ICommandResult & { crossChainId?: number | null } ;
-
+type KadenaRawInfo = ICommandResult
 interface KadenaDBInfo {
   amount: string;
   blockHash: string;
@@ -88,6 +87,7 @@ enum ActivityStatus {
   pending = "pending",
   success = "success",
   failed = "failed",
+  continued = "continued"
 }
 
 enum ActivityType {
