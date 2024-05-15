@@ -27,12 +27,6 @@
                 6
               )
             }}
-            <span v-if="Number.isFinite(activity.crossChainId)">
-              <sup
-                class="network-activity__transaction-info-crosschain-superscript"
-                >⛓️{{ activity.crossChainId }}</sup
-              >
-            </span>
           </h4>
           <p>
             <span
@@ -48,9 +42,12 @@
             <span
               v-if="network.subNetworks && activity.chainId !== undefined"
               class="network-activity__transaction-info-chainid"
-              >{{ activity.isIncoming ? "on" : "from" }} chain
-              {{ activity.chainId }}</span
-            >
+              >{{
+                activity.crossChainId !== null
+                  ? `to chain ${activity.crossChainId}`
+                  : ""
+              }}
+            </span>
           </p>
         </div>
       </div>
@@ -58,7 +55,7 @@
       <div class="network-activity__transaction-amount">
         <a
           v-if="
-            activity.status === ActivityStatus.success &&
+            activity.status === ActivityStatus.pending &&
             activity.crossChainId !== null
           "
           :href="continueUrl"

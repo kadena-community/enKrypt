@@ -28,10 +28,12 @@ export default async (
   network: BaseNetwork,
   address: string
 ): Promise<Activity[]> => {
-  //prettier-ignore
   const networkName = network.name as keyof typeof NetworkEndpoints;
   const enpoint = NetworkEndpoints[networkName];
   const ttl = NetworkTtls[networkName];
+  const api = (await network.api()) as KadenaAPI;
+  const chainId = await api.getChainId();
+
   let activities = await getAddressActivity(
     address,
     enpoint,
@@ -48,15 +50,20 @@ export default async (
       .then((mdata) => (price = mdata || "0"));
   }
 
-  const groupActivities = activities.reduce((acc: any, activity: any) => {
-    if (!acc[activity.requestKey]) {
-      acc[activity.requestKey] = activity;
-    }
-    if (activity.idx !== 0) {
-      acc[activity.requestKey] = activity;
-    }
-    return acc;
-  }, {});
+  const groupActivities = activities
+    .filter((a) => a.chain == chainId || a.crossChainId == chainId)
+    .reduce((acc: any, activity: any) => {
+      if (!acc[activity.requestKey] && activity.idx === 0) {
+        acc[activity.requestKey] = activity;
+      }
+      if (acc[activity.requestKey] && activity.idx === 1) {
+        acc[activity.requestKey] = activity;
+      }
+      if (activity.idx === 2) {
+        acc[activity.requestKey] = activity;
+      }
+      return acc;
+    }, {});
 
   activities = Object.values(groupActivities).map(
     (activity: any, i: number) => {
@@ -82,7 +89,9 @@ export default async (
         nonce: i.toString(),
         from: fromAccount,
         to: toAccount,
-        isIncoming: activity.fromAccount !== address,
+        isIncoming:
+          (!activity.crossChainId && fromAccount !== address) ||
+          (activity.crossChainId && activity.crossChainId === chainId),
         network: network.name,
         rawInfo: activity,
         chainId: activity.chain.toString(),
@@ -149,17 +158,12 @@ export default async (
           String(activity.rawInfo.crossChainId) as ChainId
         );
 
-        if (
-          transactionResult.result.status === "failure" &&
-          (transactionResult.result.error as any).message.includes(
-            "resumePact: pact completed"
-          )
-        ) {
-          activity.status = ActivityStatus.continued;
+        if (transactionResult.result.status === "success") {
+          activity.status = ActivityStatus.pending;
         }
       }
     })
   );
-
+  console.log("activities", activities);
   return activities;
 };
