@@ -51,15 +51,12 @@ export default async (
   }
 
   const groupActivities = activities
-    .filter((a) => a.chain == chainId || a.crossChainId == chainId)
+    // .filter((a) => a.chain == chainId || a.crossChainId == chainId)
     .reduce((acc: any, activity: any) => {
-      if (!acc[activity.requestKey] && activity.idx === 0) {
+      if (!acc[activity.requestKey]) {
         acc[activity.requestKey] = activity;
       }
-      if (acc[activity.requestKey] && activity.idx === 1) {
-        acc[activity.requestKey] = activity;
-      }
-      if (activity.idx === 2) {
+      if (activity.idx !== 0) {
         acc[activity.requestKey] = activity;
       }
       return acc;
@@ -150,16 +147,19 @@ export default async (
           })
           .createTransaction();
 
-        const networkApi = (await network.api()) as KadenaAPI;
-
-        const transactionResult = await networkApi.sendLocalTransaction(
+        const transactionResult = await api.sendLocalTransaction(
           tx,
           { signatureVerification: false, preflight: false },
           String(activity.rawInfo.crossChainId) as ChainId
         );
 
-        if (transactionResult.result.status === "success") {
-          activity.status = ActivityStatus.pending;
+        if (
+          transactionResult.result.status === "failure" &&
+          (transactionResult.result.error as any).message.includes(
+            "resumePact: pact completed"
+          )
+        ) {
+          activity.status = ActivityStatus.continued;
         }
       }
     })
