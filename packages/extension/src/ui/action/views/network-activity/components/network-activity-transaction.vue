@@ -54,10 +54,7 @@
 
       <div class="network-activity__transaction-amount">
         <a
-          v-if="
-            activity.status === ActivityStatus.pending &&
-            activity.crossChainId !== null
-          "
+          v-if="activity.status === ActivityStatus.needs_continuation"
           :href="continueUrl"
           target="_blank"
         >

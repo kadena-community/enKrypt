@@ -62,6 +62,8 @@ export default async (
       return acc;
     }, {});
 
+  console.log({ groupActivities });
+
   activities = Object.values(groupActivities).map(
     (activity: any, i: number) => {
       const rawAmount = toBase(
@@ -153,13 +155,9 @@ export default async (
           String(activity.rawInfo.crossChainId) as ChainId
         );
 
-        if (
-          transactionResult.result.status === "failure" &&
-          (transactionResult.result.error as any).message.includes(
-            "resumePact: pact completed"
-          )
-        ) {
-          activity.status = ActivityStatus.continued;
+
+        if (transactionResult.result.status === "success") {
+          activity.status = ActivityStatus.needs_continuation;
         }
       }
     })
