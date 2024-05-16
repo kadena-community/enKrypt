@@ -155,13 +155,11 @@ export default async (
           String(activity.rawInfo.crossChainId) as ChainId
         );
 
-
         if (transactionResult.result.status === "success") {
           activity.status = ActivityStatus.needs_continuation;
         }
       }
     })
   );
-  console.log("activities", activities);
   return activities;
 };
