@@ -51,7 +51,10 @@ export default async (
   }
 
   const groupActivities = activities
-    // .filter((a) => a.chain == chainId || a.crossChainId == chainId)
+    .filter(
+      (activity) =>
+        activity.chain == chainId || activity.crossChainId == chainId
+    )
     .reduce((acc: any, activity: any) => {
       if (!acc[activity.requestKey]) {
         acc[activity.requestKey] = activity;
