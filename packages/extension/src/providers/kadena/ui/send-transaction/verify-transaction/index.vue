@@ -3,7 +3,7 @@
     <verify-normal-transaction
       v-if="txData.transactionType === TransactionType.normal"
     />
-    <verify-normal-transaction
+    <verify-finish-crosschain-transaction
       v-if="txData.transactionType === TransactionType.finish_crosschain"
     />
   </div>
@@ -14,6 +14,13 @@ import VerifyNormalTransaction from "./verify-normal-transaction.vue";
 import VerifyFinishCrosschainTransaction from "./verify-finish-crosschain-transaction.vue";
 import { TransactionType } from "../../types";
 import { useRoute } from "vue-router";
+
+const props = defineProps({
+  accountInfo: {
+    type: Object as PropType<AccountsHeaderData>,
+    default: () => ({}),
+  },
+});
 
 const route = useRoute();
 

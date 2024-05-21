@@ -16,7 +16,7 @@
         <p class="verify-transaction__description" :class="{ popup: isPopup }">
           Double check the information and confirm transaction
         </p>
-        <div
+        <!-- <div
           class="verify-transaction__info"
           :class="{ popup: isPopup, border: isHasScroll() }"
         >
@@ -36,14 +36,14 @@
           />
           <verify-transaction-amount :token="txData.toToken" />
           <verify-transaction-fee :fee="txData.txFee" />
-        </div>
+        </div> -->
       </custom-scrollbar>
 
-      <div class="verify-transaction__error">
+      <!-- <div class="verify-transaction__error">
         <send-alert v-show="errorMsg" :error-msg="errorMsg" />
-      </div>
+      </div> -->
 
-      <div
+      <!-- <div
         class="verify-transaction__buttons"
         :class="{ popup: isPopup, border: isHasScroll() }"
       >
@@ -62,10 +62,10 @@
             :disabled="isProcessing"
           />
         </div>
-      </div>
+      </div> -->
     </div>
 
-    <send-process
+    <!-- <send-process
       v-if="isProcessing"
       :is-done="isSendDone"
       :to-address="txData.toAddress"
@@ -73,7 +73,7 @@
       :token="txData.toToken"
       :is-window-popup="isWindowPopup"
       :status="sendProcessStatus"
-    />
+    /> -->
   </div>
 </template>
 
@@ -126,22 +126,22 @@ const verifyScrollRef = ref<ComponentPublicInstance<HTMLElement>>();
 defineExpose({ verifyScrollRef });
 const network = ref<BaseNetwork>(DEFAULT_KADENA_NETWORK);
 
-onBeforeMount(async () => {
-  network.value = (await getNetworkByName(selectedNetwork))!;
-  const networkApi = (await network.value.api()) as KadenaAPI;
-  account.value = await KeyRing.getAccount(txData.fromAddress);
-  fromChainId.value = await networkApi.getChainId();
-  toChainId.value = txData.toChainId;
-  isWindowPopup.value = account.value.isHardware;
-  kdaToken.value = new KDAToken({
-    icon: network.value.icon,
-    balance: "0",
-    price: "0",
-    name: "loading",
-    symbol: "loading",
-    decimals: network.value.decimals,
-  });
-});
+// onBeforeMount(async () => {
+//   network.value = (await getNetworkByName(selectedNetwork))!;
+//   const networkApi = (await network.value.api()) as KadenaAPI;
+//   account.value = await KeyRing.getAccount(txData.fromAddress);
+//   fromChainId.value = await networkApi.getChainId();
+//   toChainId.value = txData.toChainId;
+//   isWindowPopup.value = account.value.isHardware;
+//   kdaToken.value = new KDAToken({
+//     icon: network.value.icon,
+//     balance: "0",
+//     price: "0",
+//     name: "loading",
+//     symbol: "loading",
+//     decimals: network.value.decimals,
+//   });
+// });
 
 const close = () => {
   if (getCurrentContext() === "popup") {

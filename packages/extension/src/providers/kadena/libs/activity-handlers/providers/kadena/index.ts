@@ -137,6 +137,7 @@ export default async (
         );
 
         const spv = await fetchSpvResponse.json();
+        activity.spv = spv;
 
         const tx = Pact.builder
           .continuation({

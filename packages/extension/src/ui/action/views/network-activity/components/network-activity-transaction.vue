@@ -202,8 +202,12 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
+  console.log("props.accountInfo", props.accountInfo);
+
   const txVerifyInfo = {
     transactionType: "finish_crosschain",
+    pactId: props.activity.transactionHash,
+    spv: "",
   };
 
   const routedRoute = router.resolve({

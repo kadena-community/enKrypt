@@ -31,6 +31,8 @@ export interface VerifyTransactionParams {
   toToken: ToTokenData;
   txFee: TxFeeInfo;
   TransactionData: SendTransactionDataType;
+  spv?: string;
+  pactId?: string;
 }
 
 export interface SignerTransactionOptions {
