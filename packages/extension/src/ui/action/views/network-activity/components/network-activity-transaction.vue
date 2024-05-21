@@ -202,19 +202,17 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
-  console.log("sendAction");
-
-  const txData = {
-    isFinishTx: true
-    toChainId: props.activity.crossChainId,
-    toAddressName: "",
-  }
+  const txVerifyInfo = {
+    transactionType: "finish_crosschain",
+  };
 
   const routedRoute = router.resolve({
     name: RouterNames.verify.name,
     query: {
       id: "KDATestnet",
-      txData: Buffer.from(JSON.stringify({}), "utf8").toString("base64"),
+      txData: Buffer.from(JSON.stringify(txVerifyInfo), "utf8").toString(
+        "base64"
+      ),
     },
   });
   router.push(routedRoute);

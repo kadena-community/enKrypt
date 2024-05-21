@@ -11,6 +11,7 @@
 
 <script setup lang="ts">
 import VerifyNormalTransaction from "./verify-normal-transaction.vue";
+import VerifyFinishCrosschainTransaction from "./verify-finish-crosschain-transaction.vue";
 import { TransactionType } from "../../types";
 import { useRoute } from "vue-router";
 
