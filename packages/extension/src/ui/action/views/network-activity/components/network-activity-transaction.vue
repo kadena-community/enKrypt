@@ -124,8 +124,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute, useRouter } from "vue-router";
 import { computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
+import { routes as RouterNames } from "@/ui/action/router";
 import TransactionTimer from "./transaction-timer.vue";
 import {
   Activity,
@@ -148,6 +150,7 @@ const props = defineProps({
   },
 });
 
+const router = useRouter();
 const status = ref("~");
 const date = ref("~");
 
@@ -198,10 +201,23 @@ onMounted(() => {
   }
 });
 
-const sendAction = async (event) => {
-  console.log({ event });
-  event.stopPropagation();
-  console.log("Send Action");
+const sendAction = async () => {
+  console.log("sendAction");
+
+  const txData = {
+    isFinishTx: true
+    toChainId: props.activity.crossChainId,
+    toAddressName: "",
+  }
+
+  const routedRoute = router.resolve({
+    name: RouterNames.verify.name,
+    query: {
+      id: "KDATestnet",
+      txData: Buffer.from(JSON.stringify({}), "utf8").toString("base64"),
+    },
+  });
+  router.push(routedRoute);
 };
 </script>
 
