@@ -3,12 +3,12 @@
     v-if="activity.type === ActivityType.transaction"
     class="container-empty"
   >
-    <a
-      :href="transactionURL"
-      target="_blank"
-      class="network-activity__transaction"
-    >
-      <div class="network-activity__transaction-info">
+    <div class="network-activity__transaction">
+      <a
+        :href="transactionURL"
+        target="_blank"
+        class="network-activity__transaction-info"
+      >
         <img
           :src="
             network.identicon(activity.isIncoming ? activity.from : activity.to)
@@ -50,16 +50,16 @@
             </span>
           </p>
         </div>
-      </div>
+      </a>
 
       <div class="network-activity__transaction-amount">
-        <a
+        <button
+          class="network-activity__transaction-finish-tx-button"
           v-if="activity.status === ActivityStatus.needs_continuation"
-          :href="continueUrl"
-          target="_blank"
+          @click="sendAction"
         >
           Finish tx
-        </a>
+        </button>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
@@ -73,7 +73,7 @@
           $ {{ $filters.formatFiatValue(getFiatValue).value }}
         </p>
       </div>
-    </a>
+    </div>
   </section>
   <section v-if="activity.type === ActivityType.swap" class="container-empty">
     <section class="network-activity__transaction">
@@ -197,6 +197,12 @@ onMounted(() => {
     status.value = "Failed";
   }
 });
+
+const sendAction = async (event) => {
+  console.log({ event });
+  event.stopPropagation();
+  console.log("Send Action");
+};
 </script>
 
 <style lang="less">
@@ -215,7 +221,6 @@ onMounted(() => {
     align-items: center;
     flex-direction: row;
     text-decoration: none;
-    cursor: pointer;
     margin: 0 12px;
     border-radius: 10px;
     transition: background 300ms ease-in-out;
@@ -226,9 +231,11 @@ onMounted(() => {
 
     &-info {
       display: flex;
+      text-decoration: none;
       justify-content: flex-start;
       align-items: center;
       flex-direction: row;
+      cursor: pointer;
 
       img {
         max-width: 32px;
@@ -305,6 +312,11 @@ onMounted(() => {
         color: @secondaryLabel;
         margin: 0;
       }
+    }
+
+    &-finish-tx-button {
+      background-color: #ffffff;
+      font-size: 12px;
     }
   }
 }
