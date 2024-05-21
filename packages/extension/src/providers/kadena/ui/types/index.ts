@@ -16,7 +16,13 @@ export interface SendTransactionDataType {
   data: `0x${string}`;
 }
 
+export enum TransactionType {
+  normal = "normal",
+  finish_crosschain = "finish_crosschain",
+}
+
 export interface VerifyTransactionParams {
+  transactionType: TransactionType;
   fromAddress: string;
   fromAddressName: string;
   toChainId: string;

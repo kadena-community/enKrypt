@@ -128,7 +128,7 @@ import { toBN } from "web3-utils";
 import { formatFloatingPointValue } from "@/libs/utils/number-formatter";
 import { fromBase, toBase, isValidDecimals } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
-import { VerifyTransactionParams } from "../types";
+import { VerifyTransactionParams, TransactionType } from "../types";
 import { routes as RouterNames } from "@/ui/action/router";
 import { KDAToken } from "@/providers/kadena/types/kda-token";
 import PublicKeyRing from "@/libs/keyring/public-keyring";
@@ -497,6 +497,7 @@ const sendAction = async () => {
   }
 
   const txVerifyInfo: VerifyTransactionParams = {
+    transactionType: TransactionType.normal,
     TransactionData: {
       from: fromAccount.address,
       to: addressTo.value,
