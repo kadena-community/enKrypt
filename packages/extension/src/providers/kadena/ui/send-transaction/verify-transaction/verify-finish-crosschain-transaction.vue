@@ -16,27 +16,27 @@
         <p class="verify-transaction__description" :class="{ popup: isPopup }">
           Double check the information and confirm transaction
         </p>
-        <!-- <div
+        <div
           class="verify-transaction__info"
           :class="{ popup: isPopup, border: isHasScroll() }"
         >
           <verify-transaction-network :network="network" />
           <verify-transaction-account
-            :name="txData.fromAddressName"
-            :address="network.displayAddress(txData.fromAddress)"
+            :name="props.selectedAccountName"
+            :address="network.displayAddress(selectedAccountAddress)"
             :from="true"
             :network="network"
             :subnetwork="fromChainId != toChainId ? 'Chain ' + fromChainId : ''"
           />
-          <verify-transaction-account
+          <!-- <verify-transaction-account
             :name="txData.toAddressName"
             :address="network.displayAddress(txData.toAddress)"
             :network="network"
             :subnetwork="fromChainId != toChainId ? 'Chain ' + toChainId : ''"
           />
           <verify-transaction-amount :token="txData.toToken" />
-          <verify-transaction-fee :fee="txData.txFee" />
-        </div> -->
+          <verify-transaction-fee :fee="txData.txFee" /> -->
+        </div>
       </custom-scrollbar>
 
       <!-- <div class="verify-transaction__error">
@@ -125,6 +125,21 @@ const isWindowPopup = ref(false);
 const verifyScrollRef = ref<ComponentPublicInstance<HTMLElement>>();
 defineExpose({ verifyScrollRef });
 const network = ref<BaseNetwork>(DEFAULT_KADENA_NETWORK);
+
+const props = defineProps({
+  selectedAccountName: {
+    type: String,
+    default: () => {
+      return "";
+    },
+  },
+  selectedAccountAddress: {
+    type: String,
+    default: () => {
+      return "";
+    },
+  },
+});
 
 // onBeforeMount(async () => {
 //   network.value = (await getNetworkByName(selectedNetwork))!;
