@@ -1,4 +1,3 @@
-import { BaseNetwork } from "@/types/base-network";
 import { ToTokenData } from "@/ui/action/types/token";
 import { EnkryptAccount } from "@enkryptcom/types";
 

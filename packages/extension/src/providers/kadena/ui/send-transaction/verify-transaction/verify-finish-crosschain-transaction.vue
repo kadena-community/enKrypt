@@ -26,16 +26,9 @@
             :address="network.displayAddress(selectedAccountAddress)"
             :from="true"
             :network="network"
-            :subnetwork="fromChainId != toChainId ? 'Chain ' + fromChainId : ''"
+            :subnetwork="'Chain ' + txData.toChainId"
           />
-          <!-- <verify-transaction-account
-            :name="txData.toAddressName"
-            :address="network.displayAddress(txData.toAddress)"
-            :network="network"
-            :subnetwork="fromChainId != toChainId ? 'Chain ' + toChainId : ''"
-          />
-          <verify-transaction-amount :token="txData.toToken" />
-          <verify-transaction-fee :fee="txData.txFee" /> -->
+          <verify-transaction-fee :fee="txData.txFee" />
         </div>
       </custom-scrollbar>
 
@@ -125,6 +118,8 @@ const isWindowPopup = ref(false);
 const verifyScrollRef = ref<ComponentPublicInstance<HTMLElement>>();
 defineExpose({ verifyScrollRef });
 const network = ref<BaseNetwork>(DEFAULT_KADENA_NETWORK);
+
+console.log({ txData });
 
 const props = defineProps({
   selectedAccountName: {
