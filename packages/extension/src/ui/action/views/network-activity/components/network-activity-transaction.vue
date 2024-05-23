@@ -139,6 +139,8 @@ import { BaseNetwork } from "@/types/base-network";
 import { fromBase } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
+import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
+
 const props = defineProps({
   activity: {
     type: Object as PropType<Activity>,
@@ -202,15 +204,21 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
-  console.log("props.accountInfo", props.accountInfo);
-
-  console.log("activityyyy", props.activity);
+  const txFeeObject = CreateTxFeeObject(
+    props.activity.necessaryGasFeeToContinuation,
+    props.network.decimals,
+    {
+      decimals: props.network.decimals,
+      price: 0,
+    }
+  );
 
   const txVerifyInfo = {
     transactionType: "finish_crosschain",
     toChainId: props.activity.crossChainId,
     pactId: props.activity.transactionHash,
     spv: props.activity.spv,
+    txFee: txFeeObject,
   };
 
   const routedRoute = router.resolve({

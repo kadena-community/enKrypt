@@ -161,6 +161,12 @@ export default async (
 
         if (transactionResult.result.status === "success") {
           activity.status = ActivityStatus.needs_continuation;
+
+          const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+          const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+          const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
+
+          activity.necessaryGasFeeToContinuation = gasFee;
         }
       }
     })

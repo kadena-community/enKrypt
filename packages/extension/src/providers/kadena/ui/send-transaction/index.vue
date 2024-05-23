@@ -139,6 +139,7 @@ import getUiPath from "@/libs/utils/get-ui-path";
 import { ProviderName } from "@/types/provider";
 import Browser from "webextension-polyfill";
 import { SubNetworkOptions } from "@/types/base-network";
+import { CreateTxFeeObject } from "../libs/createTxFeeObject";
 
 const props = defineProps({
   network: {
@@ -346,12 +347,13 @@ const validateFields = async () => {
 
       const txPrice = new BigNumber(nativeAsset.price!).times(txFeeHuman);
 
-      fee.value = {
-        fiatSymbol: "USD",
-        fiatValue: txPrice.toString(),
-        nativeSymbol: nativeAsset.symbol ?? "",
-        nativeValue: txFeeHuman.toString(),
-      };
+      const txFeeObject = CreateTxFeeObject(
+        gasFee,
+        selectedAsset.value.decimals,
+        nativeAsset
+      );
+
+      fee.value = txFeeObject;
     }
   } catch (error: any) {
     errorMsg.value = error.message || "An error occurred";
