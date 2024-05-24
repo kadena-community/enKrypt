@@ -223,7 +223,6 @@ const checkSwap = (activity: Activity): void => {
 };
 const selectedNetworkName = computed(() => props.network.name);
 const setActivities = () => {
-  //prettier-ignore
   activities.value = [];
   isNoActivity.value = false;
   if (props.accountInfo.selectedAccount)
