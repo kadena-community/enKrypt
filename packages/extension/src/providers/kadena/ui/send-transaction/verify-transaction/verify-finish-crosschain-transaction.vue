@@ -126,22 +126,10 @@ const props = defineProps({
   },
 });
 
-// onBeforeMount(async () => {
-//   network.value = (await getNetworkByName(selectedNetwork))!;
-//   const networkApi = (await network.value.api()) as KadenaAPI;
-//   account.value = await KeyRing.getAccount(txData.fromAddress);
-//   fromChainId.value = await networkApi.getChainId();
-//   toChainId.value = txData.toChainId;
-//   isWindowPopup.value = account.value.isHardware;
-//   kdaToken.value = new KDAToken({
-//     icon: network.value.icon,
-//     balance: "0",
-//     price: "0",
-//     name: "loading",
-//     symbol: "loading",
-//     decimals: network.value.decimals,
-//   });
-// });
+onBeforeMount(async () => {
+  account.value = await KeyRing.getAccount(props.selectedAccountAddress);
+  isWindowPopup.value = account.value.isHardware;
+});
 
 const close = () => {
   if (getCurrentContext() === "popup") {
@@ -156,13 +144,7 @@ const sendAction = async () => {
   isSendDone.value = false;
 
   try {
-    const isCrosschainTransaction = fromChainId.value !== toChainId.value;
-
-    if (isCrosschainTransaction) {
-      await sendCrossChainTransaction();
-    } else {
-      await sendSameChainTransaction();
-    }
+    sendCrossChainFinishTransaction();
 
     isSendDone.value = true;
 
@@ -188,96 +170,39 @@ const sendAction = async () => {
   }
 };
 
-const sendSameChainTransaction = async () => {
-  const networkApi = (await network.value.api()) as KadenaAPI;
-  const transaction = await kdaToken.value!.buildSameChainTransaction!(
-    txData.toAddress,
-    account.value!,
-    txData.TransactionData.value,
-    network.value as KadenaNetwork,
-    fromChainId.value!
-  );
-
-  const { transactionDescriptor } = await networkApi.sendTransaction(
-    transaction
-  );
-
-  const txActivity: Activity = {
-    from: network.value.displayAddress(txData.fromAddress),
-    to: network.value.displayAddress(txData.toAddress),
-    isIncoming: txData.fromAddress === txData.toAddress,
-    network: network.value.name,
-    status: ActivityStatus.pending,
-    chainId: fromChainId.value!,
-    timestamp: new Date().getTime(),
-    token: {
-      decimals: txData.toToken.decimals,
-      icon: txData.toToken.icon,
-      name: txData.toToken.name,
-      symbol: txData.toToken.symbol,
-      price: txData.toToken.price,
-    },
-    type: ActivityType.transaction,
-    value: txData.toToken.amount,
-    transactionHash: transactionDescriptor.requestKey,
-  };
-
-  const activityState = new ActivityState();
-
-  await activityState.addActivities([txActivity], {
-    address: network.value.displayAddress(txData.fromAddress),
-    network: network.value.name,
-  });
-};
-
-const sendCrossChainTransaction = async () => {
+const sendCrossChainFinishTransaction = async () => {
   const networkApi = (await network.value.api()) as KadenaAPI;
 
-  sendProcessStatus.value = `Cross chain transfer initiated on chain ${fromChainId.value}...`;
+  sendProcessStatus.value = `Cross chain finish transaction initiated.`;
 
-  const transaction = await kdaToken.value!
-    .buildCrossChainFirstStepTransaction!(
-    txData.toAddress,
-    account.value!,
-    txData.TransactionData.value,
-    network.value as KadenaNetwork,
-    fromChainId.value!,
-    toChainId.value!
-  );
-
-  const { transactionDescriptor, commandResult } =
-    await networkApi.sendTransaction(transaction, undefined, true);
-
-  sendProcessStatus.value = "Done. Waiting for SPV proof...";
-
-  const spvResult = await networkApi.pollCreateSpv(
-    transactionDescriptor,
-    toChainId.value!
-  );
-
+  console.log("00000");
   const senderBalanceToChain = await networkApi.getBalanceByChainId(
-    txData.fromAddress,
-    toChainId.value!
+    props.selectedAccountAddress,
+    txData.toChainId as string
   );
 
+  console.log("11111");
   sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
 
+  console.log("222222");
   try {
     const secondStepTransaction = await kdaToken.value!
       .buildCrossChainSecondStepTransaction!(
       account.value!,
-      commandResult!.continuation!.pactId,
-      spvResult,
+      txData.pactId,
+      txData.spv,
       senderBalanceToChain == "0",
       network.value as KadenaNetwork,
-      toChainId.value!
+      txData.toChainId
     );
 
-    await networkApi.sendTransaction(
+    const r = await networkApi.sendTransaction(
       secondStepTransaction,
       toChainId.value!,
       true
     );
+
+    console.log({ r });
 
     sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
   } catch (error: any) {

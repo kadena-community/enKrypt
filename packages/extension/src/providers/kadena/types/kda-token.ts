@@ -164,6 +164,7 @@ export class KDAToken extends KDABaseToken {
     network: KadenaNetwork,
     toChainId: string
   ): Promise<IUnsignedCommand | ICommand> {
+    console.log("from", from);
     const builder = Pact.builder
       .continuation({
         pactId: pactId,

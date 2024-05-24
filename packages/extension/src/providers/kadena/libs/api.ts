@@ -65,7 +65,7 @@ class API implements ProviderAPIInterface {
   async getBalanceByChainId(address: string, chainId: string): Promise<string> {
     const balance = await this.getBalanceAPI(
       this.displayAddress(address),
-      chainId
+      chainId.toString()
     );
 
     if (balance.result.status === "failure") {
