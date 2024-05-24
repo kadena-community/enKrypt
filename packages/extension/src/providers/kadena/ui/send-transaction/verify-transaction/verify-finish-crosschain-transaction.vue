@@ -1,42 +1,33 @@
 <template>
   <div class="container" :class="{ popup: isPopup }">
     <div v-if="!!selectedNetwork" class="verify-transaction">
-      <custom-scrollbar
-        ref="verifyScrollRef"
-        class="verify-transaction__scroll-area"
+      <div class="verify-transaction__header" :class="{ popup: isPopup }">
+        <h3>Verify Finish Crosschain Transaction</h3>
+        <a v-if="!isPopup" class="verify-transaction__close" @click="close">
+          <close-icon />
+        </a>
+      </div>
+      <hardware-wallet-msg :wallet-type="account?.walletType" />
+
+      <p class="verify-transaction__description" :class="{ popup: isPopup }">
+        Double check the information and confirm transaction
+      </p>
+      <div
+        class="verify-transaction__info"
+        :class="{ popup: isPopup, border: isHasScroll() }"
       >
-        <div class="verify-transaction__header" :class="{ popup: isPopup }">
-          <h3>Verify Finish Crosschain Transaction</h3>
-          <a v-if="!isPopup" class="verify-transaction__close" @click="close">
-            <close-icon />
-          </a>
-        </div>
-        <hardware-wallet-msg :wallet-type="account?.walletType" />
+        <verify-transaction-network :network="network" />
+        <verify-transaction-account
+          :name="props.selectedAccountName"
+          :address="network.displayAddress(selectedAccountAddress)"
+          :from="true"
+          :network="network"
+          :subnetwork="'Chain ' + txData.toChainId"
+        />
+        <verify-transaction-fee :fee="txData.txFee" />
+      </div>
 
-        <p class="verify-transaction__description" :class="{ popup: isPopup }">
-          Double check the information and confirm transaction
-        </p>
-        <div
-          class="verify-transaction__info"
-          :class="{ popup: isPopup, border: isHasScroll() }"
-        >
-          <verify-transaction-network :network="network" />
-          <verify-transaction-account
-            :name="props.selectedAccountName"
-            :address="network.displayAddress(selectedAccountAddress)"
-            :from="true"
-            :network="network"
-            :subnetwork="'Chain ' + txData.toChainId"
-          />
-          <verify-transaction-fee :fee="txData.txFee" />
-        </div>
-      </custom-scrollbar>
-
-      <!-- <div class="verify-transaction__error">
-        <send-alert v-show="errorMsg" :error-msg="errorMsg" />
-      </div> -->
-
-      <!-- <div
+      <div
         class="verify-transaction__buttons"
         :class="{ popup: isPopup, border: isHasScroll() }"
       >
@@ -55,11 +46,10 @@
             :disabled="isProcessing"
           />
         </div>
-      </div> -->
+      </div>
     </div>
 
     <!-- <send-process
-      v-if="isProcessing"
       :is-done="isSendDone"
       :to-address="txData.toAddress"
       :network="network"
