@@ -49,14 +49,13 @@
       </div>
     </div>
 
-    <!-- <send-process
+    <send-process
+      v-if="isProcessing"
       :is-done="isSendDone"
-      :to-address="txData.toAddress"
-      :network="network"
-      :token="txData.toToken"
       :is-window-popup="isWindowPopup"
       :status="sendProcessStatus"
-    /> -->
+      :isCrosschainFinishTransaction="true"
+    />
   </div>
 </template>
 
@@ -151,7 +150,7 @@ const sendAction = async () => {
   isSendDone.value = false;
 
   try {
-    sendCrossChainFinishTransaction();
+    await sendCrossChainFinishTransaction();
 
     isSendDone.value = true;
 
@@ -180,15 +179,14 @@ const sendAction = async () => {
 const sendCrossChainFinishTransaction = async () => {
   const networkApi = (await network.value.api()) as KadenaAPI;
 
-  sendProcessStatus.value = `Cross chain finish transaction initiated.`;
+  sendProcessStatus.value = `Crosschain finish transaction initiated.`;
 
-  console.log("00000");
   const senderBalanceToChain = await networkApi.getBalanceByChainId(
     props.selectedAccountAddress,
     txData.toChainId as string
   );
 
-  sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
+  sendProcessStatus.value = `Sending finish crosschain transaction on chain ${txData.toChainId}...`;
 
   try {
     const secondStepTransaction = await kdaToken.value!
@@ -206,11 +204,9 @@ const sendCrossChainFinishTransaction = async () => {
       true
     );
 
-    console.log({ result });
-
-    sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
+    sendProcessStatus.value = `Finish crosschain transaction executed on chain ${txData.toChainId}.`;
   } catch (error: any) {
-    sendProcessStatus.value = `Please claim your coins on chain ${toChainId.value} manually.`;
+    sendProcessStatus.value = `Something went wrong finishing crosschain transaction.`;
   }
 };
 

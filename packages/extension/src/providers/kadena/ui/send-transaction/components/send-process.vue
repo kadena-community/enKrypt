@@ -16,7 +16,7 @@
           />
         </div>
         <div class="send-process__status">{{ status }}</div>
-        <div class="send-process__info">
+        <div class="send-process__info" v-if="!isCrosschainFinishTransaction">
           <send-process-amount :token="token" />
           <div class="send-process__info-arrow">
             <arrow-down />
@@ -62,6 +62,7 @@ defineProps({
     type: String,
     default: "",
   },
+  isCrosschainFinishTransaction: Boolean,
 });
 </script>
 
