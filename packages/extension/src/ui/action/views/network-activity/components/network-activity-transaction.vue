@@ -224,7 +224,7 @@ const sendAction = async () => {
   const routedRoute = router.resolve({
     name: RouterNames.verify.name,
     query: {
-      id: "KDATestnet",
+      id: props.network.name,
       txData: Buffer.from(JSON.stringify(txVerifyInfo), "utf8").toString(
         "base64"
       ),
