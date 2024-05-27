@@ -109,8 +109,6 @@ const verifyScrollRef = ref<ComponentPublicInstance<HTMLElement>>();
 defineExpose({ verifyScrollRef });
 const network = ref<BaseNetwork>(DEFAULT_KADENA_NETWORK);
 
-console.log({ txData });
-
 const props = defineProps({
   selectedAccountName: {
     type: String,
@@ -127,8 +125,17 @@ const props = defineProps({
 });
 
 onBeforeMount(async () => {
+  network.value = (await getNetworkByName(selectedNetwork))!;
   account.value = await KeyRing.getAccount(props.selectedAccountAddress);
   isWindowPopup.value = account.value.isHardware;
+  kdaToken.value = new KDAToken({
+    icon: network.value.icon,
+    balance: "0",
+    price: "0",
+    name: "loading",
+    symbol: "loading",
+    decimals: network.value.decimals,
+  });
 });
 
 const close = () => {
@@ -181,10 +188,8 @@ const sendCrossChainFinishTransaction = async () => {
     txData.toChainId as string
   );
 
-  console.log("11111");
   sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
 
-  console.log("222222");
   try {
     const secondStepTransaction = await kdaToken.value!
       .buildCrossChainSecondStepTransaction!(
@@ -193,16 +198,15 @@ const sendCrossChainFinishTransaction = async () => {
       txData.spv,
       senderBalanceToChain == "0",
       network.value as KadenaNetwork,
-      txData.toChainId
+      txData.toChainId.toString()
     );
-
-    const r = await networkApi.sendTransaction(
+    const result = await networkApi.sendTransaction(
       secondStepTransaction,
-      toChainId.value!,
+      txData.toChainId.toString(),
       true
     );
 
-    console.log({ r });
+    console.log({ result });
 
     sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
   } catch (error: any) {
