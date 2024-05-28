@@ -3,12 +3,12 @@
     v-if="activity.type === ActivityType.transaction"
     class="container-empty"
   >
-    <a
-      :href="transactionURL"
-      target="_blank"
-      class="network-activity__transaction"
-    >
-      <div class="network-activity__transaction-info">
+    <div class="network-activity__transaction">
+      <a
+        :href="transactionURL"
+        target="_blank"
+        class="network-activity__transaction-info"
+      >
         <img
           :src="
             network.identicon(activity.isIncoming ? activity.from : activity.to)
@@ -50,16 +50,16 @@
             </span>
           </p>
         </div>
-      </div>
+      </a>
 
       <div class="network-activity__transaction-amount">
-        <a
+        <button
+          class="network-activity__transaction-finish-tx-button"
           v-if="activity.status === ActivityStatus.needs_continuation"
-          :href="continueUrl"
-          target="_blank"
+          @click="sendAction"
         >
           Finish tx
-        </a>
+        </button>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
@@ -73,7 +73,7 @@
           $ {{ $filters.formatFiatValue(getFiatValue).value }}
         </p>
       </div>
-    </a>
+    </div>
   </section>
   <section v-if="activity.type === ActivityType.swap" class="container-empty">
     <section class="network-activity__transaction">
@@ -124,8 +124,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute, useRouter } from "vue-router";
 import { computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
+import { routes as RouterNames } from "@/ui/action/router";
 import TransactionTimer from "./transaction-timer.vue";
 import {
   Activity,
@@ -137,6 +139,8 @@ import { BaseNetwork } from "@/types/base-network";
 import { fromBase } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
+import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
+
 const props = defineProps({
   activity: {
     type: Object as PropType<Activity>,
@@ -148,6 +152,7 @@ const props = defineProps({
   },
 });
 
+const router = useRouter();
 const status = ref("~");
 const date = ref("~");
 
@@ -197,6 +202,36 @@ onMounted(() => {
     status.value = "Failed";
   }
 });
+
+const sendAction = async () => {
+  const txFeeObject = CreateTxFeeObject(
+    props.activity.necessaryGasFeeToContinuation,
+    props.network.decimals,
+    {
+      decimals: props.network.decimals,
+      price: 0,
+    }
+  );
+
+  const txVerifyInfo = {
+    transactionType: "finish_crosschain",
+    toChainId: props.activity.crossChainId,
+    pactId: props.activity.transactionHash,
+    spv: props.activity.spv,
+    txFee: txFeeObject,
+  };
+
+  const routedRoute = router.resolve({
+    name: RouterNames.verify.name,
+    query: {
+      id: props.network.name,
+      txData: Buffer.from(JSON.stringify(txVerifyInfo), "utf8").toString(
+        "base64"
+      ),
+    },
+  });
+  router.push(routedRoute);
+};
 </script>
 
 <style lang="less">
@@ -215,7 +250,6 @@ onMounted(() => {
     align-items: center;
     flex-direction: row;
     text-decoration: none;
-    cursor: pointer;
     margin: 0 12px;
     border-radius: 10px;
     transition: background 300ms ease-in-out;
@@ -226,9 +260,11 @@ onMounted(() => {
 
     &-info {
       display: flex;
+      text-decoration: none;
       justify-content: flex-start;
       align-items: center;
       flex-direction: row;
+      cursor: pointer;
 
       img {
         max-width: 32px;
@@ -305,6 +341,11 @@ onMounted(() => {
         color: @secondaryLabel;
         margin: 0;
       }
+    }
+
+    &-finish-tx-button {
+      background-color: #ffffff;
+      font-size: 12px;
     }
   }
 }
