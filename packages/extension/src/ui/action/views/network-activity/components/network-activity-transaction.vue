@@ -198,6 +198,8 @@ onMounted(() => {
   )
     status.value =
       props.activity.type === ActivityType.transaction ? "Sending" : "Swapping";
+  else if (props.activity.status === ActivityStatus.needs_continuation)
+    status.value = "Sent";
   else {
     status.value = "Failed";
   }
