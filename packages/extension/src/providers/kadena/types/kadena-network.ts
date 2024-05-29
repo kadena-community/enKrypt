@@ -139,4 +139,28 @@ export class KadenaNetwork extends BaseNetwork {
   public getAllActivity(address: string): Promise<Activity[]> {
     return this.activityHandler(this, address);
   }
+
+  public async getSpvForTransaction(activity: Activity): Promise<string> {
+    console.log("getSpvForTransaction");
+    console.log({
+      requestKey: activity.transactionHash,
+      targetChainId: String(activity.crossChainId),
+    });
+    const fetchSpvResponse = await fetch(
+      `${this.node}/testnet04/chain/${activity.chainId}/pact/spv`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestKey: activity.transactionHash,
+          targetChainId: String(activity.crossChainId),
+        }),
+      }
+    );
+
+    const spv = await fetchSpvResponse.json();
+    return spv;
+  }
 }

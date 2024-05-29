@@ -78,6 +78,7 @@ import Swap, {
 } from "@enkryptcom/swap";
 import EvmAPI from "@/providers/ethereum/libs/api";
 import type Web3Eth from "web3-eth";
+import { KadenaNetwork } from "../../../../providers/kadena/types/kadena-network";
 
 const props = defineProps({
   network: {
@@ -139,7 +140,7 @@ const checkActivity = (activity: Activity): void => {
   }, 5000);
   activityCheckTimers.push(timer);
 };
-const getInfo = (activity: Activity, info: any, timer: any) => {
+const getInfo = async (activity: Activity, info: any, timer: any) => {
   if (info) {
     if (props.network.provider === ProviderName.ethereum) {
       const evmInfo = info as EthereumRawInfo;
@@ -180,11 +181,27 @@ const getInfo = (activity: Activity, info: any, timer: any) => {
     } else if (props.network.provider === ProviderName.kadena) {
       const kadenaInfo = info as KadenaRawInfo;
 
-      activity.status =
-        kadenaInfo.result.status == "success"
-          ? ActivityStatus.success
-          : ActivityStatus.failed;
-      activity.rawInfo = kadenaInfo as KadenaRawInfo;
+      if (activity.status === ActivityStatus.waiting_for_spv) {
+        const transferXChainEvent = activity.rawInfo.events.filter(
+          (event) => event.name === "TRANSFER_XCHAIN"
+        )[0];
+        activity.crossChainId = transferXChainEvent.params[3];
+
+        const kadenaNetwork = props.network as KadenaNetwork;
+
+        const spv = await kadenaNetwork.getSpvForTransaction(activity);
+
+        activity.spv = spv;
+        activity.status = ActivityStatus.needs_continuation;
+      } else {
+        activity.rawInfo = kadenaInfo as KadenaRawInfo;
+        activity.status =
+          kadenaInfo.result.status == "success"
+            ? activity.rawInfo.continuation.executed
+              ? ActivityStatus.success
+              : ActivityStatus.waiting_for_spv
+            : ActivityStatus.failed;
+      }
 
       activityState
         .updateActivity(activity, {
@@ -231,7 +248,8 @@ const setActivities = () => {
       isNoActivity.value = all.length === 0;
       activities.value.forEach((act) => {
         if (
-          act.status === ActivityStatus.pending &&
+          (act.status === ActivityStatus.pending ||
+            act.status === ActivityStatus.waiting_for_spv) &&
           act.type === ActivityType.transaction
         )
           checkActivity(act);

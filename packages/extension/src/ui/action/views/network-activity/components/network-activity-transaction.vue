@@ -60,6 +60,13 @@
         >
           Finish tx
         </button>
+        <button
+          class="network-activity__transaction-finish-tx-button"
+          v-if="activity.status === ActivityStatus.waiting_for_spv"
+          @click="sendAction"
+        >
+          waiting_for_spv
+        </button>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
