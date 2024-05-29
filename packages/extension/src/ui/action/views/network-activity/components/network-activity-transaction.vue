@@ -132,7 +132,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
-import { computed, onMounted, PropType, ref } from "vue";
+import { onBeforeMount, computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
 import { routes as RouterNames } from "@/ui/action/router";
 import TransactionTimer from "./transaction-timer.vue";
@@ -147,6 +147,7 @@ import { fromBase } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
 import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
+import { KDAToken } from "@/providers/kadena/types/kda-token";
 
 const props = defineProps({
   activity: {
@@ -157,11 +158,18 @@ const props = defineProps({
     type: Object as PropType<BaseNetwork>,
     default: () => ({}),
   },
+  selectedAccount: {
+    type: Object,
+    default: () => {
+      return "";
+    },
+  },
 });
 
 const router = useRouter();
 const status = ref("~");
 const date = ref("~");
+const kdaToken = ref<KDAToken>();
 
 const transactionURL = computed(() => {
   return props.network.blockExplorerTX.replace(
@@ -177,6 +185,15 @@ const getFiatValue = computed(() => {
     fromBase(props.activity.value, props.activity.token.decimals)
   );
 });
+
+onBeforeMount(async () => {
+  kdaToken.value = new KDAToken({
+    price: "0",
+    symbol: "KDA",
+    decimals: 12,
+  });
+});
+
 onMounted(() => {
   date.value = moment(props.activity.timestamp).fromNow();
   if (
@@ -213,14 +230,23 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
-  const txFeeObject = CreateTxFeeObject(
-    props.activity.necessaryGasFeeToContinuation,
-    props.network.decimals,
-    {
-      decimals: props.network.decimals,
-      price: 0,
-    }
+  const secondStepTransaction = await kdaToken.value!.buildCrossChainSecondStepTransaction!(
+    props.selectedAccount,
+    props.activity.transactionHash,
+    props.activity.spv,
+    false,
+    props.network as KadenaNetwork,
+    props.activity.chainId.toString()
   );
+
+  const networkApi = (await props.network.api()) as KadenaAPI;
+  const transactionResult = await networkApi.sendLocalTransaction(secondStepTransaction);
+
+  const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+  const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+  const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
+
+  const txFeeObject = CreateTxFeeObject(gasFee, 12, kdaToken.value);
 
   const txVerifyInfo = {
     transactionType: "finish_crosschain",

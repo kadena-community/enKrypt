@@ -19,6 +19,7 @@
             :key="index + `${forceUpdateVal}`"
             :activity="item"
             :network="network"
+            :selectedAccount="props.accountInfo.selectedAccount"
           />
         </div>
         <!-- <div class="network-activity__header">July</div>
@@ -79,6 +80,7 @@ import Swap, {
 import EvmAPI from "@/providers/ethereum/libs/api";
 import type Web3Eth from "web3-eth";
 import { KadenaNetwork } from "../../../../providers/kadena/types/kadena-network";
+import { ITransactionDescriptor } from "@kadena/client";
 
 const props = defineProps({
   network: {
@@ -189,11 +191,21 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
 
         const kadenaNetwork = props.network as KadenaNetwork;
 
-        const spv = await kadenaNetwork.getSpvForTransaction(activity);
+        const transactionDescriptor: ITransactionDescriptor = {
+          requestKey: activity.transactionHash,
+          chainId: activity.chainId,
+          networkId: kadenaNetwork.options.kadenaApiOptions.networkId,
+        };
+
+        const networkApi = (await kadenaNetwork.api()) as KadenaAPI;
+        const spv = await networkApi.pollCreateSpv(
+          transactionDescriptor,
+          activity.chainId
+        );
 
         activity.spv = spv;
         activity.status = ActivityStatus.needs_continuation;
-      } else {
+      } else if (activity.status === ActivityStatus.pending) {
         activity.rawInfo = kadenaInfo as KadenaRawInfo;
         activity.status =
           kadenaInfo.result.status == "success"

@@ -141,11 +141,6 @@ export class KadenaNetwork extends BaseNetwork {
   }
 
   public async getSpvForTransaction(activity: Activity): Promise<string> {
-    console.log("getSpvForTransaction");
-    console.log({
-      requestKey: activity.transactionHash,
-      targetChainId: String(activity.crossChainId),
-    });
     const fetchSpvResponse = await fetch(
       `${this.node}/testnet04/chain/${activity.chainId}/pact/spv`,
       {
