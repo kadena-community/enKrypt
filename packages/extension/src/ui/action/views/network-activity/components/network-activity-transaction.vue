@@ -230,7 +230,8 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
-  const secondStepTransaction = await kdaToken.value!.buildCrossChainSecondStepTransaction!(
+  const secondStepTransaction = await kdaToken.value!
+    .buildCrossChainSecondStepTransaction!(
     props.selectedAccount,
     props.activity.transactionHash,
     props.activity.spv,
@@ -240,7 +241,9 @@ const sendAction = async () => {
   );
 
   const networkApi = (await props.network.api()) as KadenaAPI;
-  const transactionResult = await networkApi.sendLocalTransaction(secondStepTransaction);
+  const transactionResult = await networkApi.sendLocalTransaction(
+    secondStepTransaction
+  );
 
   const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
   const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
