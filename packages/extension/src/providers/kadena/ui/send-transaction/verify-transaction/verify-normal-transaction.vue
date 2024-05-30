@@ -11,7 +11,10 @@
             <close-icon />
           </a>
         </div>
-        <hardware-wallet-msg :wallet-type="account?.walletType" />
+
+        <div class="verify-transaction__hardware" v-if="account?.isHardware">
+          <hardware-wallet-msg :wallet-type="account?.walletType" />
+        </div>
 
         <p class="verify-transaction__description" :class="{ popup: isPopup }">
           Double check the information and confirm transaction
@@ -263,12 +266,15 @@ const sendCrossChainTransaction = async () => {
   sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
 
   try {
+    const useGasStation =
+      account.value?.isHardware || senderBalanceToChain == "0";
+
     const secondStepTransaction = await kdaToken.value!
       .buildCrossChainSecondStepTransaction!(
       account.value!,
       commandResult!.continuation!.pactId,
       spvResult,
-      senderBalanceToChain == "0",
+      useGasStation,
       network.value as KadenaNetwork,
       toChainId.value!
     );
@@ -346,6 +352,10 @@ const isHasScroll = () => {
     &:hover {
       background: @black007;
     }
+  }
+
+  &__hardware {
+    padding: 0 32px 0 32px;
   }
 
   &__description {
