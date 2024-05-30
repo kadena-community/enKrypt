@@ -255,7 +255,7 @@ const sendAction = async () => {
     transactionType: "finish_crosschain",
     toChainId: props.activity.crossChainId,
     pactId: props.activity.transactionHash,
-    spv: props.activity.spv,
+    spv: props.activity.spv.replaceAll('"', ""),
     txFee: txFeeObject,
   };
 
