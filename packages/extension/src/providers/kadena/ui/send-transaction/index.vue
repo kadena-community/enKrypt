@@ -454,7 +454,7 @@ const selectSubnetwork = (subnet: SubNetworkOptions) => {
 
 const inputAmount = (number: string | undefined) => {
   sendMax.value = false;
-  amount.value = number ? (parseFloat(number) < 0 ? "" : number) : number;
+  amount.value = number;
 };
 
 const sendButtonTitle = computed(() => {

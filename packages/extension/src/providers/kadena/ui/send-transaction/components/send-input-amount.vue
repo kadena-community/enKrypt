@@ -2,11 +2,12 @@
   <div class="send-input-amount" :class="{ focus: isFocus }">
     <input
       v-model="amount"
-      type="number"
+      type="text"
       placeholder="0"
       :class="{ error: !isValid }"
       @focus="changeFocus"
       @blur="changeFocus"
+      @keypress="validate"
     />
 
     <div class="send-input-amount__fiat">
@@ -26,7 +27,7 @@ import SwitchArrowIcon from "@action/icons/send/switch-arrow-icon.vue";
 import BigNumber from "bignumber.js";
 
 const emit = defineEmits<{
-  (e: "update:inputAmount", address: string | undefined): void;
+  (e: "update:inputAmount", amount: string | undefined): void;
   (e: "update:inputSetMax"): void;
 }>();
 
@@ -52,15 +53,34 @@ const fiatEquivalent = computed(() => {
 const amount = computed({
   get: () => props.amount,
   set: (value) => {
-    emit(
-      "update:inputAmount",
-      value ? new BigNumber(value).toFixed() : value.toString()
-    );
+    emit("update:inputAmount", value.toString());
   },
 });
 
 const changeFocus = () => {
   isFocus.value = !isFocus.value;
+};
+
+const validate = (e: any) => {
+  const charCode = e.which ? e.which : e.keyCode;
+
+  if (e.target.value.indexOf(".") == -1 && charCode == 44) {
+    amount.value = e.target.value + ".";
+    e.preventDefault();
+    return false;
+  }
+
+  if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+    e.preventDefault();
+    return false;
+  }
+
+  if (e.target.value.indexOf(".") >= 0 && charCode == 46) {
+    e.preventDefault();
+    return false;
+  }
+
+  return true;
 };
 </script>
 
