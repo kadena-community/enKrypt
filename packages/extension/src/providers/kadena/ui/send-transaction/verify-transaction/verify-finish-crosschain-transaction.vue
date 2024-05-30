@@ -188,6 +188,15 @@ const sendCrossChainFinishTransaction = async () => {
 
   sendProcessStatus.value = `Sending finish crosschain transaction on chain ${txData.toChainId}...`;
 
+  console.log("txData.toChainId.toString()", txData.toChainId.toString());
+  console.log({
+    "account.value!": account.value!,
+    "txData.pactId": txData.pactId,
+    "txData.spv": txData.spv,
+    "senderBalanceToChain ==": senderBalanceToChain == "0",
+    "network.value as KadenaNetwork": network.value as KadenaNetwork,
+    "txData.toChainId.toString()": txData.toChainId.toString(),
+  });
   try {
     const secondStepTransaction = await kdaToken.value!
       .buildCrossChainSecondStepTransaction!(
@@ -198,11 +207,14 @@ const sendCrossChainFinishTransaction = async () => {
       network.value as KadenaNetwork,
       txData.toChainId.toString()
     );
+    console.log({ secondStepTransaction });
     const result = await networkApi.sendTransaction(
       secondStepTransaction,
       txData.toChainId.toString(),
       true
     );
+
+    console.log({ result });
 
     sendProcessStatus.value = `Finish crosschain transaction executed on chain ${txData.toChainId}.`;
   } catch (error: any) {
