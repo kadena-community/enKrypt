@@ -90,6 +90,8 @@ enum ActivityStatus {
   failed = "failed",
   needs_continuation = "needs_continuation",
   waiting_for_spv = "waiting_for_spv",
+  executing_continuation = "executing_continuation",
+  continuation_executed = "continuation_executed",
 }
 
 enum ActivityType {

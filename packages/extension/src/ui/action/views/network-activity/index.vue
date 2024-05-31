@@ -81,6 +81,8 @@ import EvmAPI from "@/providers/ethereum/libs/api";
 import type Web3Eth from "web3-eth";
 import { KadenaNetwork } from "../../../../providers/kadena/types/kadena-network";
 import { ITransactionDescriptor } from "@kadena/client";
+import { ChainId, Pact } from "@kadena/client";
+import KadenaAPI from "@/providers/kadena/libs/api";
 
 const props = defineProps({
   network: {
@@ -182,14 +184,13 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
         .then(() => updateVisibleActivity(activity));
     } else if (props.network.provider === ProviderName.kadena) {
       const kadenaInfo = info as KadenaRawInfo;
+      const kadenaNetwork = props.network as KadenaNetwork;
 
       if (activity.status === ActivityStatus.waiting_for_spv) {
         const transferXChainEvent = activity.rawInfo.events.filter(
           (event) => event.name === "TRANSFER_XCHAIN"
         )[0];
         activity.crossChainId = transferXChainEvent.params[3];
-
-        const kadenaNetwork = props.network as KadenaNetwork;
 
         const transactionDescriptor: ITransactionDescriptor = {
           requestKey: activity.transactionHash,
@@ -243,6 +244,42 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
         } else {
           activity.status = ActivityStatus.failed;
         }
+      } else if (activity.status === ActivityStatus.executing_continuation) {
+        activityState
+          .updateActivity(activity, {
+            address: activityAddress.value,
+            network: props.network.name,
+          })
+          .then(() => updateVisibleActivity(activity));
+
+        const tx = Pact.builder
+          .continuation({
+            proof: activity.spv,
+            data: {},
+            pactId: activity.transactionHash,
+            rollback: false,
+            step: 1,
+          })
+          .setMeta({
+            chainId: String(activity.rawInfo.crossChainId) as ChainId,
+            senderAccount: activity.from,
+          })
+          .createTransaction();
+
+        const api = (await props.network.api()) as KadenaAPI;
+        const { result } = await api.sendLocalTransaction(
+          tx,
+          { signatureVerification: false, preflight: false },
+          String(activity.rawInfo.crossChainId) as ChainId
+        );
+
+        if (result.status === "success") {
+          return;
+        } else if (result.status === "failure") {
+          if (result.error.message.includes("pact completed")) {
+            activity.status = ActivityStatus.continuation_executed;
+          }
+        }
       }
 
       activityState
@@ -291,7 +328,8 @@ const setActivities = () => {
       activities.value.forEach((act) => {
         if (
           (act.status === ActivityStatus.pending ||
-            act.status === ActivityStatus.waiting_for_spv) &&
+            act.status === ActivityStatus.waiting_for_spv ||
+            act.status === ActivityStatus.executing_continuation) &&
           act.type === ActivityType.transaction
         )
           checkActivity(act);

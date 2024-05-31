@@ -35,7 +35,10 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
@@ -103,7 +106,10 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
