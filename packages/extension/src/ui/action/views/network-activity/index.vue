@@ -197,22 +197,52 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
           networkId: kadenaNetwork.options.kadenaApiOptions.networkId,
         };
 
-        const networkApi = (await kadenaNetwork.api()) as KadenaAPI;
-        const spv = await networkApi.pollCreateSpv(
-          transactionDescriptor,
-          activity.chainId
-        );
+        let spv;
+        try {
+          const fetchSpvResponse = await fetch(
+            `${kadenaNetwork.node}/testnet04/chain/${activity.chainId}/pact/spv`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                requestKey: activity.transactionHash,
+                targetChainId: String(activity.crossChainId),
+              }),
+            }
+          );
+
+          if (fetchSpvResponse.status !== 200) {
+            return;
+          }
+
+          spv = await fetchSpvResponse.json();
+        } catch (error) {
+          console.error("error", error);
+        }
 
         activity.spv = spv;
         activity.status = ActivityStatus.needs_continuation;
       } else if (activity.status === ActivityStatus.pending) {
         activity.rawInfo = kadenaInfo as KadenaRawInfo;
-        activity.status =
-          kadenaInfo.result.status == "success"
-            ? activity.rawInfo.continuation.executed
-              ? ActivityStatus.success
-              : ActivityStatus.waiting_for_spv
-            : ActivityStatus.failed;
+
+        if (kadenaInfo.result.status === "success") {
+          if (activity.rawInfo.continuation?.executed !== null) {
+            activity.status = ActivityStatus.success;
+          } else {
+            activity.status = ActivityStatus.waiting_for_spv;
+            activityState
+              .updateActivity(activity, {
+                address: activityAddress.value,
+                network: props.network.name,
+              })
+              .then(() => updateVisibleActivity(activity));
+            return;
+          }
+        } else {
+          activity.status = ActivityStatus.failed;
+        }
       }
 
       activityState
