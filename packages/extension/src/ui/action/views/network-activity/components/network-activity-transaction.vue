@@ -209,7 +209,9 @@ onMounted(() => {
     status.value =
       props.activity.type === ActivityType.transaction ? "Received" : "Swapped";
   else if (
-    props.activity.status === ActivityStatus.success &&
+    (props.activity.status === ActivityStatus.success ||
+      props.activity.status === ActivityStatus.waiting_for_spv ||
+      props.activity.status === ActivityStatus.continuation_executed) &&
     !props.activity.isIncoming
   )
     status.value =
@@ -230,6 +232,8 @@ onMounted(() => {
       props.activity.type === ActivityType.transaction ? "Sending" : "Swapping";
   else if (props.activity.status === ActivityStatus.needs_continuation)
     status.value = "Sent";
+  else if (props.activity.status === ActivityStatus.executing_continuation)
+    status.value = "Sending finish transaction";
   else {
     status.value = "Failed";
   }
