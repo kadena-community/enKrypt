@@ -256,6 +256,7 @@ const sendCrossChainTransaction = async () => {
     network: network.value.name,
     status: ActivityStatus.pending,
     chainId: fromChainId.value!,
+    crossChainId: toChainId.value,
     timestamp: new Date().getTime(),
     token: {
       decimals: txData.toToken.decimals,
