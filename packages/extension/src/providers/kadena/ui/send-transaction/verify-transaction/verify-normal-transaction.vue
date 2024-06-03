@@ -279,37 +279,37 @@ const sendCrossChainTransaction = async () => {
       toChainId.value!
     );
 
-      const { transactionDescriptor } = await networkApi.sendTransaction(
+    const { transactionDescriptor } = await networkApi.sendTransaction(
       secondStepTransaction
     );
 
     const txActivity: Activity = {
-    from: network.value.displayAddress(txData.fromAddress),
-    to: network.value.displayAddress(txData.toAddress),
-    isIncoming: txData.fromAddress === txData.toAddress,
-    network: network.value.name,
-    status: ActivityStatus.pending,
-    chainId: fromChainId.value!,
-    crossChainId: toChainId.value,
-    timestamp: new Date().getTime(),
-    token: {
-      decimals: txData.toToken.decimals,
-      icon: txData.toToken.icon,
-      name: txData.toToken.name,
-      symbol: txData.toToken.symbol,
-      price: txData.toToken.price,
-    },
-    type: ActivityType.transaction,
-    value: txData.toToken.amount,
-    transactionHash: transactionDescriptor.requestKey,
-  };
+      from: network.value.displayAddress(txData.fromAddress),
+      to: network.value.displayAddress(txData.toAddress),
+      isIncoming: txData.fromAddress === txData.toAddress,
+      network: network.value.name,
+      status: ActivityStatus.pending,
+      chainId: fromChainId.value!,
+      crossChainId: toChainId.value,
+      timestamp: new Date().getTime(),
+      token: {
+        decimals: txData.toToken.decimals,
+        icon: txData.toToken.icon,
+        name: txData.toToken.name,
+        symbol: txData.toToken.symbol,
+        price: txData.toToken.price,
+      },
+      type: ActivityType.transaction,
+      value: txData.toToken.amount,
+      transactionHash: transactionDescriptor.requestKey,
+    };
 
-  const activityState = new ActivityState();
+    const activityState = new ActivityState();
 
-  await activityState.addActivities([txActivity], {
-    address: network.value.displayAddress(txData.fromAddress),
-    network: network.value.name,
-  });
+    await activityState.addActivities([txActivity], {
+      address: network.value.displayAddress(txData.fromAddress),
+      network: network.value.name,
+    });
 
     sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
   } catch (error: any) {
