@@ -11,7 +11,10 @@
             <close-icon />
           </a>
         </div>
-        <hardware-wallet-msg :wallet-type="account?.walletType" />
+
+        <div class="verify-transaction__hardware" v-if="account?.isHardware">
+          <hardware-wallet-msg :wallet-type="account?.walletType" />
+        </div>
 
         <p class="verify-transaction__description" :class="{ popup: isPopup }">
           Double check the information and confirm transaction
@@ -245,11 +248,42 @@ const sendCrossChainTransaction = async () => {
     toChainId.value!
   );
 
-  const { transactionDescriptor } = await networkApi.sendTransaction(
-    transaction
+  const { transactionDescriptor, commandResult } =
+    await networkApi.sendTransaction(transaction, undefined, true);
+
+  sendProcessStatus.value = "Done. Waiting for SPV proof...";
+
+  const spvResult = await networkApi.pollCreateSpv(
+    transactionDescriptor,
+    toChainId.value!
   );
 
-  const txActivity: Activity = {
+  const senderBalanceToChain = await networkApi.getBalanceByChainId(
+    txData.fromAddress,
+    toChainId.value!
+  );
+
+  sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
+
+  try {
+    const useGasStation =
+      account.value?.isHardware || senderBalanceToChain == "0";
+
+    const secondStepTransaction = await kdaToken.value!
+      .buildCrossChainSecondStepTransaction!(
+      account.value!,
+      commandResult!.continuation!.pactId,
+      spvResult,
+      useGasStation,
+      network.value as KadenaNetwork,
+      toChainId.value!
+    );
+
+      const { transactionDescriptor } = await networkApi.sendTransaction(
+      secondStepTransaction
+    );
+
+    const txActivity: Activity = {
     from: network.value.displayAddress(txData.fromAddress),
     to: network.value.displayAddress(txData.toAddress),
     isIncoming: txData.fromAddress === txData.toAddress,
@@ -276,6 +310,11 @@ const sendCrossChainTransaction = async () => {
     address: network.value.displayAddress(txData.fromAddress),
     network: network.value.name,
   });
+
+    sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
+  } catch (error: any) {
+    sendProcessStatus.value = `Please claim your coins on chain ${toChainId.value} manually.`;
+  }
 };
 
 const isHasScroll = () => {
@@ -339,6 +378,10 @@ const isHasScroll = () => {
     &:hover {
       background: @black007;
     }
+  }
+
+  &__hardware {
+    padding: 0 32px 0 32px;
   }
 
   &__description {

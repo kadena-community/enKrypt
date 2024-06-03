@@ -106,7 +106,7 @@ export class KDAToken extends KDABaseToken {
       .setNetworkId(network.options.kadenaApiOptions.networkId)
       .createTransaction();
 
-    return await this.signTransaction(unsignedTransaction, from);
+    return await this.signTransaction(unsignedTransaction, from, network);
   }
 
   public async buildCrossChainFirstStepTransaction(
@@ -153,7 +153,7 @@ export class KDAToken extends KDABaseToken {
       .setNetworkId(network.options.kadenaApiOptions.networkId)
       .createTransaction();
 
-    return await this.signTransaction(unsignedTransaction, from);
+    return await this.signTransaction(unsignedTransaction, from, network);
   }
 
   public async buildCrossChainSecondStepTransaction(
@@ -188,17 +188,32 @@ export class KDAToken extends KDABaseToken {
       ]);
 
       const transaction = builder.createTransaction();
-      return await this.signTransaction(transaction, from);
+      return await this.signTransaction(transaction, from, network);
     }
   }
 
   private async signTransaction(
     unsignedTransaction: IUnsignedCommand,
-    account: EnkryptAccount | any
+    account: EnkryptAccount | any,
+    network: KadenaNetwork
   ): Promise<ICommand> {
+    if (account.isHardware) {
+      const transaction = await TransactionSigner({
+        account,
+        payload: unsignedTransaction.cmd,
+        network,
+      }).then((res) => {
+        if (res.error) return Promise.reject(res.error);
+        return JSON.parse(res.result as string);
+      });
+
+      return transaction as ICommand;
+    }
+
     const transaction = await TransactionSigner({
       account,
       payload: bufferToHex(blake2AsU8a(unsignedTransaction.cmd)),
+      network,
     }).then((res) => {
       if (res.error) return Promise.reject(res.error);
       else
