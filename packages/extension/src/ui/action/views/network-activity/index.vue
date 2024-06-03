@@ -267,10 +267,15 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
           .createTransaction();
 
         const api = (await props.network.api()) as KadenaAPI;
+        const crossChainId = (
+          activity.rawInfo.crossChainId
+            ? activity.rawInfo.crossChainId
+            : activity.crossChainId
+        ) as ChainId;
         const { result } = await api.sendLocalTransaction(
           tx,
           { signatureVerification: false, preflight: false },
-          String(activity.rawInfo.crossChainId) as ChainId
+          crossChainId
         );
 
         if (result.status === "success") {
