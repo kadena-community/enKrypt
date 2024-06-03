@@ -88,7 +88,11 @@
         :fee="fee ?? { nativeSymbol: props.network.currencyName }"
       />
 
-      <send-alert v-show="errorMsg" :error-msg="errorMsg" />
+      <send-alert
+        v-show="errorMsg || infoMsg"
+        :error-msg="errorMsg"
+        :info-msg="infoMsg"
+      />
 
       <div class="send-transaction__buttons">
         <div class="send-transaction__buttons-cancel">
@@ -156,6 +160,7 @@ const route = useRoute();
 const router = useRouter();
 const nameResolver = new GenericNameResolver();
 const errorMsg = ref("");
+const infoMsg = ref("");
 
 const addressInputTo = ref();
 const addressInputFrom = ref();
@@ -216,6 +221,17 @@ const validateFields = async () => {
     const networkApi = (await props.network.api()) as KadenaAPI;
     const fromChainId = await networkApi.getChainId();
     const toChainId = selectedSubnetwork.value.id;
+
+    if (fromChainId == toChainId) {
+      infoMsg.value = "";
+    } else {
+      infoMsg.value = `This will be a cross-chain transaction
+      from chain ${fromChainId}
+      to ${toChainId}
+      <a href="https://docs.kadena.io/learn/accounts#transfers-within-and-between-chainsh1647261648" target="_blank">
+        Learn more
+      </a>`;
+    }
 
     if (isAddress.value) {
       const to = props.network.displayAddress(addressTo.value);
