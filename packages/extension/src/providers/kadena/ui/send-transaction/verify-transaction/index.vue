@@ -29,8 +29,8 @@ const accountInfo = ref(props.accountInfo);
 
 const route = useRoute();
 
-const selectedAccountName = accountInfo.value.selectedAccount.name;
-const selectedAccountAddress = accountInfo.value.selectedAccount.address;
+const selectedAccountName = accountInfo.value.selectedAccount?.name;
+const selectedAccountAddress = accountInfo.value.selectedAccount?.address;
 
 const txData: VerifyTransactionParams = JSON.parse(
   Buffer.from(route.query.txData as string, "base64").toString("utf8")

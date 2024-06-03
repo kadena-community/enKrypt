@@ -292,44 +292,49 @@ const validateFields = async () => {
     }
 
     if (amount.value || sendMax.value) {
-      const localTransaction =
-        fromChainId == toChainId
-          ? await selectedAsset.value.buildSameChainTransaction!(
-              addressTo.value,
-              props.accountInfo.selectedAccount,
-              sendMax.value
-                ? fromBase(minAmount.toString(), props.network.decimals)
-                : amount.value!,
-              props.network,
-              fromChainId
-            )
-          : await selectedAsset.value.buildCrossChainFirstStepTransaction!(
-              addressTo.value,
-              props.accountInfo.selectedAccount,
-              sendMax.value
-                ? fromBase(minAmount.toString(), props.network.decimals)
-                : amount.value!,
-              props.network,
-              fromChainId,
-              toChainId
-            );
+      let gasFee = 0.000025;
 
-      const transactionResult = await networkApi.sendLocalTransaction(
-        localTransaction
-      );
+      if (!props.accountInfo.selectedAccount!.isHardware) {
+        const localTransaction =
+          fromChainId == toChainId
+            ? await selectedAsset.value.buildSameChainTransaction!(
+                addressTo.value,
+                props.accountInfo.selectedAccount,
+                sendMax.value
+                  ? fromBase(minAmount.toString(), props.network.decimals)
+                  : amount.value!,
+                props.network,
+                fromChainId
+              )
+            : await selectedAsset.value.buildCrossChainFirstStepTransaction!(
+                addressTo.value,
+                props.accountInfo.selectedAccount,
+                sendMax.value
+                  ? fromBase(minAmount.toString(), props.network.decimals)
+                  : amount.value!,
+                props.network,
+                fromChainId,
+                toChainId
+              );
 
-      if (transactionResult.result.status !== "success") {
-        fieldsValidation.value.amount = false;
-        console.log(transactionResult.result.error);
-        errorMsg.value =
-          (transactionResult.result.error as any).message ||
-          "An error occurred";
-        return;
+        const transactionResult = await networkApi.sendLocalTransaction(
+          localTransaction
+        );
+
+        if (transactionResult.result.status !== "success") {
+          fieldsValidation.value.amount = false;
+          console.log(transactionResult.result.error);
+          errorMsg.value =
+            (transactionResult.result.error as any).message ||
+            "An error occurred";
+          return;
+        }
+
+        const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+        const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+
+        gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
       }
-
-      const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
-      const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
-      const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
 
       const rawFee = toBN(
         toBase(gasFee.toString(), selectedAsset.value.decimals!)
@@ -551,22 +556,7 @@ const sendAction = async () => {
     },
   });
 
-  if (fromAccount.isHardware) {
-    await Browser.windows.create({
-      url: Browser.runtime.getURL(
-        getUiPath(
-          `dot-hw-verify?id=${routedRoute.query.id}&txData=${routedRoute.query.txData}`,
-          ProviderName.kadena
-        )
-      ),
-      type: "popup",
-      focused: true,
-      height: 600,
-      width: 460,
-    });
-  } else {
-    router.push(routedRoute);
-  }
+  router.push(routedRoute);
 };
 </script>
 
