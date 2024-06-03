@@ -88,10 +88,12 @@
         :fee="fee ?? { nativeSymbol: props.network.currencyName }"
       />
 
-      <send-alert
-        v-show="errorMsg || infoMsg"
-        :error-msg="errorMsg"
-        :info-msg="infoMsg"
+      <send-alert v-if="errorMsg" :error-msg="errorMsg" />
+
+      <cross-chain-alert
+        v-if="!errorMsg && fromChainId !== selectedSubnetwork.id"
+        :from-chain-id="fromChainId"
+        :to-chain-id="selectedSubnetwork.id"
       />
 
       <div class="send-transaction__buttons">
@@ -125,6 +127,7 @@ import SendSubnetworkList from "./components/send-subnetwork-list.vue";
 import SendInputAmount from "./components/send-input-amount.vue";
 import SendFeeSelect from "./components/send-fee-select.vue";
 import SendAlert from "./components/send-alert.vue";
+import CrossChainAlert from "./components/cross-chain-alert.vue";
 import BaseButton from "@action/components/base-button/index.vue";
 import { AccountsHeaderData } from "@action/types/account";
 import { GasFeeInfo } from "@/providers/ethereum/ui/types";
@@ -139,9 +142,6 @@ import PublicKeyRing from "@/libs/keyring/public-keyring";
 import { GenericNameResolver, CoinType } from "@/libs/name-resolver";
 import { KadenaNetwork } from "../../types/kadena-network";
 import KadenaAPI from "@/providers/kadena/libs/api";
-import getUiPath from "@/libs/utils/get-ui-path";
-import { ProviderName } from "@/types/provider";
-import Browser from "webextension-polyfill";
 import { SubNetworkOptions } from "@/types/base-network";
 import { CreateTxFeeObject } from "../libs/createTxFeeObject";
 
@@ -160,8 +160,7 @@ const route = useRoute();
 const router = useRouter();
 const nameResolver = new GenericNameResolver();
 const errorMsg = ref("");
-const infoMsg = ref("");
-
+const fromChainId = ref("");
 const addressInputTo = ref();
 const addressInputFrom = ref();
 const isOpenSelectContactFrom = ref(false);
@@ -219,19 +218,8 @@ const validateFields = async () => {
 
   try {
     const networkApi = (await props.network.api()) as KadenaAPI;
-    const fromChainId = await networkApi.getChainId();
+    fromChainId.value = await networkApi.getChainId();
     const toChainId = selectedSubnetwork.value.id;
-
-    if (fromChainId == toChainId) {
-      infoMsg.value = "";
-    } else {
-      infoMsg.value = `This will be a cross-chain transaction
-      from chain ${fromChainId}
-      to chain ${toChainId}
-      <a href="https://docs.kadena.io/learn/accounts#transfers-within-and-between-chainsh1647261648" target="_blank">
-        Learn more
-      </a>`;
-    }
 
     if (isAddress.value) {
       const to = props.network.displayAddress(addressTo.value);
@@ -259,7 +247,7 @@ const validateFields = async () => {
         }
       }
 
-      if (toChainId == fromChainId && to == from) {
+      if (toChainId == fromChainId.value && to == from) {
         fieldsValidation.value.addressTo = false;
         errorMsg.value =
           '"To" address cannot be the same as "From" address on the same chain';
@@ -296,7 +284,7 @@ const validateFields = async () => {
 
       if (!props.accountInfo.selectedAccount!.isHardware) {
         const localTransaction =
-          fromChainId == toChainId
+          fromChainId.value == toChainId
             ? await selectedAsset.value.buildSameChainTransaction!(
                 addressTo.value,
                 props.accountInfo.selectedAccount,
@@ -304,7 +292,7 @@ const validateFields = async () => {
                   ? fromBase(minAmount.toString(), props.network.decimals)
                   : amount.value!,
                 props.network,
-                fromChainId
+                fromChainId.value
               )
             : await selectedAsset.value.buildCrossChainFirstStepTransaction!(
                 addressTo.value,
@@ -313,7 +301,7 @@ const validateFields = async () => {
                   ? fromBase(minAmount.toString(), props.network.decimals)
                   : amount.value!,
                 props.network,
-                fromChainId,
+                fromChainId.value,
                 toChainId
               );
 
