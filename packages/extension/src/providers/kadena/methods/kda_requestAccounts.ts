@@ -80,6 +80,7 @@ const method: MiddlewareFunction = function (
             return {
               address: this.network.displayAddress(acc.address),
               publicKey: acc.publicKey.replace("0x", ""),
+              isHardware: acc.isHardware,
               genesisHash: "",
               name: acc.name,
               type: acc.signerType,

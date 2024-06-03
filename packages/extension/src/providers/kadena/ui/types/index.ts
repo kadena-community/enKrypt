@@ -1,3 +1,4 @@
+import { BaseNetwork } from "@/types/base-network";
 import { ToTokenData } from "@/ui/action/types/token";
 import { EnkryptAccount } from "@enkryptcom/types";
 
@@ -37,4 +38,5 @@ export interface VerifyTransactionParams {
 export interface SignerTransactionOptions {
   payload: string;
   account: EnkryptAccount;
+  network: BaseNetwork;
 }

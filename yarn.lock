@@ -2640,6 +2640,7 @@ __metadata:
     "@ethereumjs/util": ^9.0.3
     "@ledgerhq/hw-app-eth": ^6.35.7
     "@ledgerhq/hw-transport": ^6.30.5
+    "@ledgerhq/hw-transport-webhid": ^6.28.6
     "@ledgerhq/hw-transport-webusb": ^6.28.5
     "@ledgerhq/live-common": ^33.6.1
     "@polkadot/types": ^10.12.4
@@ -2659,6 +2660,7 @@ __metadata:
     eslint-plugin-import: ^2.29.1
     eslint-plugin-module-resolver: ^1.5.0
     hdkey: ^2.1.0
+    hw-app-alamgu: ^0.1.1
     mocha: ^10.3.0
     prettier: ^2.8.8
     ts-mocha: ^10.0.0
@@ -4932,6 +4934,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ledgerhq/devices@npm:^8.3.0":
+  version: 8.3.0
+  resolution: "@ledgerhq/devices@npm:8.3.0"
+  dependencies:
+    "@ledgerhq/errors": ^6.16.4
+    "@ledgerhq/logs": ^6.12.0
+    rxjs: ^7.8.1
+    semver: ^7.3.5
+  checksum: ca876ae590bd056b2b45ba2e335b9ed53d302960ce23b0de42535969472560fb97f5b3ce99decc043dfb646cd6657e765ef29502c5659b24b181a9d1d121570d
+  languageName: node
+  linkType: hard
+
 "@ledgerhq/domain-service@npm:^1.1.18":
   version: 1.1.18
   resolution: "@ledgerhq/domain-service@npm:1.1.18"
@@ -4980,6 +4994,13 @@ __metadata:
   version: 6.16.3
   resolution: "@ledgerhq/errors@npm:6.16.3"
   checksum: 430a4f34cf0aec9c9713b3784a9e76bc0cbf87c179dad8251b841d6c72c595be3c5df15668d249e8ea958577317ae909a9dbe5093a2632a3fc071edba957549d
+  languageName: node
+  linkType: hard
+
+"@ledgerhq/errors@npm:^6.16.4":
+  version: 6.16.4
+  resolution: "@ledgerhq/errors@npm:6.16.4"
+  checksum: e2d9b7e8bb61c6e22ed481d4a17e3c169c95870c2fe98e4e982425f5642ae2b25f9ae595c032f0bc98cc26cb17c28d902cd6c7bfd3b79a651c8bd7b55e753e23
   languageName: node
   linkType: hard
 
@@ -5264,6 +5285,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ledgerhq/hw-transport-webhid@npm:^6.28.6":
+  version: 6.28.6
+  resolution: "@ledgerhq/hw-transport-webhid@npm:6.28.6"
+  dependencies:
+    "@ledgerhq/devices": ^8.3.0
+    "@ledgerhq/errors": ^6.16.4
+    "@ledgerhq/hw-transport": ^6.30.6
+    "@ledgerhq/logs": ^6.12.0
+  checksum: 73b038583d3c3e426fdeff507d1c840d7b07a7e64c863173cc026cc73b9d8ed68627156d3a969475e856e9b4094dfc19711940254c3cf9f14fc3f082d96584be
+  languageName: node
+  linkType: hard
+
 "@ledgerhq/hw-transport-webusb@npm:^6.28.5":
   version: 6.28.5
   resolution: "@ledgerhq/hw-transport-webusb@npm:6.28.5"
@@ -5318,6 +5351,18 @@ __metadata:
     "@ledgerhq/logs": ^6.12.0
     events: ^3.3.0
   checksum: f4878e0b1ea093c69d2905c94bc9567c1c6694af9cff034634dd9639bd318666f131f2394f67c95d3cfd96b64693e14e4735883136545a19d8df902e3b59bf5e
+  languageName: node
+  linkType: hard
+
+"@ledgerhq/hw-transport@npm:^6.3.0, @ledgerhq/hw-transport@npm:^6.30.6":
+  version: 6.30.6
+  resolution: "@ledgerhq/hw-transport@npm:6.30.6"
+  dependencies:
+    "@ledgerhq/devices": ^8.3.0
+    "@ledgerhq/errors": ^6.16.4
+    "@ledgerhq/logs": ^6.12.0
+    events: ^3.3.0
+  checksum: 89118ebc429a47043efe62ef83058a080bfa4340861272a0e3ceb2a6f898ae77ae8cdeae19b693eb7c05dd10c5d55d1eaf0ad0fab9a45db09def46afa8d1a8c0
   languageName: node
   linkType: hard
 
@@ -15983,6 +16028,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fast-sha256@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "fast-sha256@npm:1.3.0"
+  checksum: 2b0bea7d3a9955e67abd2d3fbef4ce57f7dbb75708fc206d14973bd1d97aaf35b5c0a59c1d65be6f755df43d73b7657b9eac4fb3c2d58e6849966db1ef1fa186
+  languageName: node
+  linkType: hard
+
 "fast-stable-stringify@npm:^1.0.0":
   version: 1.0.0
   resolution: "fast-stable-stringify@npm:1.0.0"
@@ -17432,6 +17484,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hw-app-alamgu@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "hw-app-alamgu@npm:0.1.1"
+  dependencies:
+    "@ledgerhq/hw-transport": ^6.3.0
+    fast-sha256: ^1.3.0
+    typedoc: ^0.22.7
+  checksum: de8f573bda2f373e3b97f38af63afbb0ca585843765b7791c312e8f3bff016d265e50ebe1c952d451c965bc86ea3516675f32ebac7f2b56fe3a343b157ec8048
+  languageName: node
+  linkType: hard
+
 "iconv-lite@npm:0.4.24":
   version: 0.4.24
   resolution: "iconv-lite@npm:0.4.24"
@@ -18655,6 +18718,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsonc-parser@npm:^3.0.0":
+  version: 3.2.1
+  resolution: "jsonc-parser@npm:3.2.1"
+  checksum: 656d9027b91de98d8ab91b3aa0d0a4cab7dc798a6830845ca664f3e76c82d46b973675bbe9b500fae1de37fd3e81aceacbaa2a57884bf2f8f29192150d2d1ef7
+  languageName: node
+  linkType: hard
+
 "jsonc-parser@npm:^3.2.0":
   version: 3.2.0
   resolution: "jsonc-parser@npm:3.2.0"
@@ -19412,6 +19482,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lunr@npm:^2.3.9":
+  version: 2.3.9
+  resolution: "lunr@npm:2.3.9"
+  checksum: 176719e24fcce7d3cf1baccce9dd5633cd8bdc1f41ebe6a180112e5ee99d80373fe2454f5d4624d437e5a8319698ca6837b9950566e15d2cae5f2a543a3db4b8
+  languageName: node
+  linkType: hard
+
 "magic-string@npm:^0.30.3":
   version: 0.30.7
   resolution: "magic-string@npm:0.30.7"
@@ -19484,6 +19561,15 @@ __metadata:
   version: 4.3.0
   resolution: "map-obj@npm:4.3.0"
   checksum: fbc554934d1a27a1910e842bc87b177b1a556609dd803747c85ece420692380827c6ae94a95cce4407c054fa0964be3bf8226f7f2cb2e9eeee432c7c1985684e
+  languageName: node
+  linkType: hard
+
+"marked@npm:^4.0.16":
+  version: 4.3.0
+  resolution: "marked@npm:4.3.0"
+  bin:
+    marked: bin/marked.js
+  checksum: 0db6817893952c3ec710eb9ceafb8468bf5ae38cb0f92b7b083baa13d70b19774674be04db5b817681fa7c5c6a088f61300815e4dd75a59696f4716ad69f6260
   languageName: node
   linkType: hard
 
@@ -24203,6 +24289,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"shiki@npm:^0.10.1":
+  version: 0.10.1
+  resolution: "shiki@npm:0.10.1"
+  dependencies:
+    jsonc-parser: ^3.0.0
+    vscode-oniguruma: ^1.6.1
+    vscode-textmate: 5.2.0
+  checksum: fb746f3cb3de7e545e3b10a6cb658d3938f840e4ccc9a3c90ceb7e69a8f89dbb432171faac1e9f02a03f103684dad88ee5e54b5c4964fa6b579fca6e8e26424d
+  languageName: node
+  linkType: hard
+
 "side-channel@npm:^1.0.4":
   version: 1.0.4
   resolution: "side-channel@npm:1.0.4"
@@ -26087,6 +26184,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typedoc@npm:^0.22.7":
+  version: 0.22.18
+  resolution: "typedoc@npm:0.22.18"
+  dependencies:
+    glob: ^8.0.3
+    lunr: ^2.3.9
+    marked: ^4.0.16
+    minimatch: ^5.1.0
+    shiki: ^0.10.1
+  peerDependencies:
+    typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x || 4.7.x
+  bin:
+    typedoc: bin/typedoc
+  checksum: b813d8129682f6ed5a4e96bacaf019e4da1d2744ca89fef850d6bb4c034616567ce67e6a7f5cfc5f00aac573f0b45d44b1427aafa262ab88dce6b460cb9e744c
+  languageName: node
+  linkType: hard
+
 "typeforce@npm:^1.11.3, typeforce@npm:^1.11.5, typeforce@npm:^1.18.0":
   version: 1.18.0
   resolution: "typeforce@npm:1.18.0"
@@ -26659,6 +26773,20 @@ __metadata:
   version: 1.1.2
   resolution: "vm-browserify@npm:1.1.2"
   checksum: 10a1c50aab54ff8b4c9042c15fc64aefccce8d2fb90c0640403242db0ee7fb269f9b102bdb69cfb435d7ef3180d61fd4fb004a043a12709abaf9056cfd7e039d
+  languageName: node
+  linkType: hard
+
+"vscode-oniguruma@npm:^1.6.1":
+  version: 1.7.0
+  resolution: "vscode-oniguruma@npm:1.7.0"
+  checksum: 53519d91d90593e6fb080260892e87d447e9b200c4964d766772b5053f5699066539d92100f77f1302c91e8fc5d9c772fbe40fe4c90f3d411a96d5a9b1e63f42
+  languageName: node
+  linkType: hard
+
+"vscode-textmate@npm:5.2.0":
+  version: 5.2.0
+  resolution: "vscode-textmate@npm:5.2.0"
+  checksum: 5449b42d451080f6f3649b66948f4b5ee4643c4e88cfe3558a3b31c84c78060cfdd288c4958c1690eaa5cd65d09992fa6b7c3bef9d4aa72b3651054a04624d20
   languageName: node
   linkType: hard
 
