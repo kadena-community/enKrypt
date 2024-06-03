@@ -276,41 +276,6 @@ const sendCrossChainTransaction = async () => {
     address: network.value.displayAddress(txData.fromAddress),
     network: network.value.name,
   });
-  // sendProcessStatus.value = "Done. Waiting for SPV proof...";
-
-  // const spvResult = await networkApi.pollCreateSpv(
-  //   transactionDescriptor,
-  //   toChainId.value!
-  // );
-
-  // const senderBalanceToChain = await networkApi.getBalanceByChainId(
-  //   txData.fromAddress,
-  //   toChainId.value!
-  // );
-
-  // sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
-
-  // try {
-  //   const secondStepTransaction = await kdaToken.value!
-  //     .buildCrossChainSecondStepTransaction!(
-  //     account.value!,
-  //     commandResult!.continuation!.pactId,
-  //     spvResult,
-  //     senderBalanceToChain == "0",
-  //     network.value as KadenaNetwork,
-  //     toChainId.value!
-  //   );
-
-  //   const { transactionDescriptor } = await networkApi.sendTransaction(
-  //     secondStepTransaction,
-  //     toChainId.value!,
-  //     true
-  //   );
-
-  //   sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
-  // } catch (error: any) {
-  //   sendProcessStatus.value = `Please claim your coins on chain ${toChainId.value} manually.`;
-  // }
 };
 
 const isHasScroll = () => {
