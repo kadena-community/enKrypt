@@ -227,7 +227,7 @@ const validateFields = async () => {
     } else {
       infoMsg.value = `This will be a cross-chain transaction
       from chain ${fromChainId}
-      to ${toChainId}
+      to chain ${toChainId}
       <a href="https://docs.kadena.io/learn/accounts#transfers-within-and-between-chainsh1647261648" target="_blank">
         Learn more
       </a>`;
