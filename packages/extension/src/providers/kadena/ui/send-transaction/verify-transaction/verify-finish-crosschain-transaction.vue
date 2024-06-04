@@ -223,7 +223,7 @@ const sendCrossChainFinishTransaction = async () => {
       network: network.value.name,
     });
 
-    sendProcessStatus.value = `Finish crosschain transaction executed on chain ${txData.toChainId}.`;
+    sendProcessStatus.value = `Finish crosschain transaction sent on chain ${txData.toChainId}.`;
   } catch (error: any) {
     sendProcessStatus.value = `Something went wrong finishing crosschain transaction.`;
   }

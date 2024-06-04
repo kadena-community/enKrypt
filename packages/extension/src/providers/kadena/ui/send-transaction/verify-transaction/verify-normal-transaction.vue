@@ -280,7 +280,7 @@ const sendCrossChainTransaction = async () => {
     network: network.value.name,
   });
 
-  sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
+  sendProcessStatus.value = `Crosschain transfer sent from chain ${fromChainId.value} to chain ${toChainId.value}.`;
 };
 
 const isHasScroll = () => {
