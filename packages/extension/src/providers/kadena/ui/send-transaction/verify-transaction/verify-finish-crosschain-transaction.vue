@@ -7,7 +7,6 @@
           <close-icon />
         </a>
       </div>
-      <hardware-wallet-msg :wallet-type="account?.walletType" />
 
       <p class="verify-transaction__description" :class="{ popup: isPopup }">
         Double check the information and confirm transaction
@@ -67,7 +66,6 @@ import BaseButton from "@action/components/base-button/index.vue";
 import VerifyTransactionNetwork from "@/providers/common/ui/verify-transaction/verify-transaction-network.vue";
 import VerifyTransactionAccount from "@/providers/common/ui/verify-transaction/verify-transaction-account.vue";
 import VerifyTransactionFee from "@/providers/common/ui/verify-transaction/verify-transaction-fee.vue";
-import HardwareWalletMsg from "@/providers/common/ui/verify-transaction/hardware-wallet-msg.vue";
 import SendProcess from "../components/send-process.vue";
 import PublicKeyRing from "@/libs/keyring/public-keyring";
 import { getCurrentContext } from "@/libs/messenger/extension";
@@ -183,13 +181,16 @@ const sendCrossChainFinishTransaction = async () => {
 
   sendProcessStatus.value = `Sending finish crosschain transaction on chain ${txData.toChainId}...`;
 
+  const useGasStation =
+    account.value?.isHardware || senderBalanceToChain == "0";
+
   try {
     const secondStepTransaction = await kdaToken.value!
       .buildCrossChainSecondStepTransaction!(
       account.value!,
-      txData.pactId,
-      txData.spv,
-      senderBalanceToChain == "0",
+      txData.pactId!,
+      txData.spv!,
+      useGasStation,
       network.value as KadenaNetwork,
       txData.toChainId.toString()
     );

@@ -253,7 +253,7 @@ const sendAction = async () => {
     props.selectedAccount,
     props.activity.transactionHash,
     props.activity.spv,
-    false,
+    props.selectedAccount.isHardware,
     props.network as KadenaNetwork,
     props.activity.chainId.toString()
   );
