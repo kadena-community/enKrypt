@@ -248,73 +248,39 @@ const sendCrossChainTransaction = async () => {
     toChainId.value!
   );
 
-  const { transactionDescriptor, commandResult } =
-    await networkApi.sendTransaction(transaction, undefined, true);
-
-  sendProcessStatus.value = "Done. Waiting for SPV proof...";
-
-  const spvResult = await networkApi.pollCreateSpv(
-    transactionDescriptor,
-    toChainId.value!
+  const { transactionDescriptor } = await networkApi.sendTransaction(
+    transaction
   );
 
-  const senderBalanceToChain = await networkApi.getBalanceByChainId(
-    txData.fromAddress,
-    toChainId.value!
-  );
+  const txActivity: Activity = {
+    from: network.value.displayAddress(txData.fromAddress),
+    to: network.value.displayAddress(txData.toAddress),
+    isIncoming: txData.fromAddress === txData.toAddress,
+    network: network.value.name,
+    status: ActivityStatus.pending,
+    chainId: fromChainId.value!,
+    crossChainId: toChainId.value,
+    timestamp: new Date().getTime(),
+    token: {
+      decimals: txData.toToken.decimals,
+      icon: txData.toToken.icon,
+      name: txData.toToken.name,
+      symbol: txData.toToken.symbol,
+      price: txData.toToken.price,
+    },
+    type: ActivityType.transaction,
+    value: txData.toToken.amount,
+    transactionHash: transactionDescriptor.requestKey,
+  };
 
-  sendProcessStatus.value = `Done. Claiming coins initiated on chain ${toChainId.value}...`;
+  const activityState = new ActivityState();
 
-  try {
-    const useGasStation =
-      account.value?.isHardware || senderBalanceToChain == "0";
+  await activityState.addActivities([txActivity], {
+    address: network.value.displayAddress(txData.fromAddress),
+    network: network.value.name,
+  });
 
-    const secondStepTransaction = await kdaToken.value!
-      .buildCrossChainSecondStepTransaction!(
-      account.value!,
-      commandResult!.continuation!.pactId,
-      spvResult,
-      useGasStation,
-      network.value as KadenaNetwork,
-      toChainId.value!
-    );
-
-    const { transactionDescriptor } = await networkApi.sendTransaction(
-      secondStepTransaction
-    );
-
-    const txActivity: Activity = {
-      from: network.value.displayAddress(txData.fromAddress),
-      to: network.value.displayAddress(txData.toAddress),
-      isIncoming: txData.fromAddress === txData.toAddress,
-      network: network.value.name,
-      status: ActivityStatus.pending,
-      chainId: fromChainId.value!,
-      crossChainId: toChainId.value,
-      timestamp: new Date().getTime(),
-      token: {
-        decimals: txData.toToken.decimals,
-        icon: txData.toToken.icon,
-        name: txData.toToken.name,
-        symbol: txData.toToken.symbol,
-        price: txData.toToken.price,
-      },
-      type: ActivityType.transaction,
-      value: txData.toToken.amount,
-      transactionHash: transactionDescriptor.requestKey,
-    };
-
-    const activityState = new ActivityState();
-
-    await activityState.addActivities([txActivity], {
-      address: network.value.displayAddress(txData.fromAddress),
-      network: network.value.name,
-    });
-
-    sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
-  } catch (error: any) {
-    sendProcessStatus.value = `Please claim your coins on chain ${toChainId.value} manually.`;
-  }
+  sendProcessStatus.value = `Coins retrieved on chain ${toChainId.value}.`;
 };
 
 const isHasScroll = () => {

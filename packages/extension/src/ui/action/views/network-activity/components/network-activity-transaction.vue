@@ -66,7 +66,6 @@
         <button
           class="network-activity__transaction-finish-tx-button"
           v-if="activity.status === ActivityStatus.waiting_for_spv"
-          @click="sendAction"
         >
           waiting_for_spv
         </button>
@@ -240,6 +239,7 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
+  console.log("send action 1");
   const secondStepTransaction = await kdaToken.value!
     .buildCrossChainSecondStepTransaction!(
     props.selectedAccount,
@@ -250,15 +250,18 @@ const sendAction = async () => {
     props.activity.chainId.toString()
   );
 
+  console.log("send action 2");
   const networkApi = (await props.network.api()) as KadenaAPI;
   const transactionResult = await networkApi.sendLocalTransaction(
     secondStepTransaction
   );
 
+  console.log("send action 3");
   const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
   const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
   const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
 
+  console.log("send action 4");
   const txFeeObject = CreateTxFeeObject(gasFee, 12, kdaToken.value);
 
   const txVerifyInfo = {
@@ -269,6 +272,7 @@ const sendAction = async () => {
     txFee: txFeeObject,
   };
 
+  console.log("send action 5");
   const routedRoute = router.resolve({
     name: RouterNames.verify.name,
     query: {

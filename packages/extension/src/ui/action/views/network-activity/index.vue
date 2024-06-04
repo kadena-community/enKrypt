@@ -283,7 +283,7 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
         } else if (result.status === "failure") {
           if (result.error.message.includes("pact completed")) {
             activity.status = ActivityStatus.continuation_executed;
-          }
+          } else return;
         }
       }
 
