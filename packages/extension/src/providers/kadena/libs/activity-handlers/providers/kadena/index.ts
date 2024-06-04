@@ -65,8 +65,6 @@ export default async (
       return acc;
     }, {});
 
-  console.log({ groupActivities });
-
   activities = Object.values(groupActivities).map(
     (activity: any, i: number) => {
       const rawAmount = toBase(

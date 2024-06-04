@@ -35,7 +35,10 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
@@ -44,7 +47,9 @@
               class="network-activity__transaction-info-chainid"
               >{{
                 activity.crossChainId !== null
-                  ? `to chain ${activity.crossChainId}`
+                  ? `${activity.isIncoming ? "from" : "to"} chain ${
+                      activity.crossChainId
+                    }`
                   : ""
               }}
             </span>
@@ -65,8 +70,15 @@
           v-if="activity.status === ActivityStatus.needs_continuation"
           @click="sendAction"
         >
-          Finish tx
+          Send finish tx
         </button>
+        <span
+          class="network-activity__transaction-waiting-for-spv-chip"
+          v-if="activity.status === ActivityStatus.waiting_for_spv"
+        >
+          Waiting for SPV
+          <send-spinner-animation />
+        </span>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
@@ -103,7 +115,10 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
@@ -132,7 +147,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
-import { computed, onMounted, PropType, ref } from "vue";
+import { onBeforeMount, computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
 import { routes as RouterNames } from "@/ui/action/router";
 import TransactionTimer from "./transaction-timer.vue";
@@ -148,6 +163,8 @@ import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
 import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
 import CrossChainIcon from "@action/icons/common/cross-chain.vue";
+import { KDAToken } from "@/providers/kadena/types/kda-token";
+import SendSpinnerAnimation from "@action/icons/send/send-spinner-animation.vue";
 
 const props = defineProps({
   activity: {
@@ -158,11 +175,18 @@ const props = defineProps({
     type: Object as PropType<BaseNetwork>,
     default: () => ({}),
   },
+  selectedAccount: {
+    type: Object,
+    default: () => {
+      return "";
+    },
+  },
 });
 
 const router = useRouter();
 const status = ref("~");
 const date = ref("~");
+const kdaToken = ref<KDAToken>();
 
 const transactionURL = computed(() => {
   return props.network.blockExplorerTX.replace(
@@ -178,6 +202,15 @@ const getFiatValue = computed(() => {
     fromBase(props.activity.value, props.activity.token.decimals)
   );
 });
+
+onBeforeMount(async () => {
+  kdaToken.value = new KDAToken({
+    price: "0",
+    symbol: "KDA",
+    decimals: 12,
+  });
+});
+
 onMounted(() => {
   date.value = moment(props.activity.timestamp).fromNow();
   if (
@@ -187,7 +220,9 @@ onMounted(() => {
     status.value =
       props.activity.type === ActivityType.transaction ? "Received" : "Swapped";
   else if (
-    props.activity.status === ActivityStatus.success &&
+    (props.activity.status === ActivityStatus.success ||
+      props.activity.status === ActivityStatus.waiting_for_spv ||
+      props.activity.status === ActivityStatus.continuation_executed) &&
     !props.activity.isIncoming
   )
     status.value =
@@ -206,26 +241,42 @@ onMounted(() => {
   )
     status.value =
       props.activity.type === ActivityType.transaction ? "Sending" : "Swapping";
+  else if (props.activity.status === ActivityStatus.needs_continuation)
+    status.value = "Sent";
+  else if (props.activity.status === ActivityStatus.executing_continuation)
+    status.value = "Sending finish tx";
   else {
     status.value = "Failed";
   }
 });
 
 const sendAction = async () => {
-  const txFeeObject = CreateTxFeeObject(
-    props.activity.necessaryGasFeeToContinuation,
-    props.network.decimals,
-    {
-      decimals: props.network.decimals,
-      price: 0,
-    }
+  const secondStepTransaction = await kdaToken.value!
+    .buildCrossChainSecondStepTransaction!(
+    props.selectedAccount,
+    props.activity.transactionHash,
+    props.activity.spv,
+    false,
+    props.network as KadenaNetwork,
+    props.activity.chainId.toString()
   );
+
+  const networkApi = (await props.network.api()) as KadenaAPI;
+  const transactionResult = await networkApi.sendLocalTransaction(
+    secondStepTransaction
+  );
+
+  const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+  const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+  const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
+
+  const txFeeObject = CreateTxFeeObject(gasFee, 12, kdaToken.value);
 
   const txVerifyInfo = {
     transactionType: "finish_crosschain",
     toChainId: props.activity.crossChainId,
     pactId: props.activity.transactionHash,
-    spv: props.activity.spv,
+    spv: props.activity.spv.replaceAll('"', ""),
     txFee: txFeeObject,
   };
 
@@ -355,7 +406,31 @@ const sendAction = async () => {
 
     &-finish-tx-button {
       background-color: #ffffff;
+      border: 1.5px solid;
       font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      padding: 1px 6px;
+      cursor: pointer;
+    }
+
+    &-waiting-for-spv-chip {
+      border: 1.5px solid;
+      font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      padding: 0 4px;
     }
   }
 }

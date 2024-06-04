@@ -198,13 +198,32 @@ const sendCrossChainFinishTransaction = async () => {
       network.value as KadenaNetwork,
       txData.toChainId.toString()
     );
+
     const result = await networkApi.sendTransaction(
       secondStepTransaction,
-      txData.toChainId.toString(),
-      true
+      txData.toChainId.toString()
     );
 
-    sendProcessStatus.value = `Finish crosschain transaction executed on chain ${txData.toChainId}.`;
+    const activityState = new ActivityState();
+
+    const allActivities = await activityState.getAllActivities({
+      address: network.value.displayAddress(account.value.address),
+      network: network.value.name,
+    });
+
+    const activity = allActivities.find(
+      (activity) => activity.transactionHash === txData.pactId
+    );
+
+    activity.status = ActivityStatus.executing_continuation;
+    activity.timestamp = new Date().getTime();
+
+    activityState.updateActivity(activity, {
+      address: network.value.displayAddress(account.value.address),
+      network: network.value.name,
+    });
+
+    sendProcessStatus.value = `Finish crosschain transaction sent on chain ${txData.toChainId}.`;
   } catch (error: any) {
     sendProcessStatus.value = `Something went wrong finishing crosschain transaction.`;
   }
