@@ -1,16 +1,26 @@
 <template>
-  <div class="send-alert">
-    <alert-icon />
+  <div class="cross-chain-alert">
+    <cross-chain-icon />
 
-    <p>{{ errorMsg }}</p>
+    <p>
+      This will be a cross-chain transaction from chain {{ fromChainId }} to
+      chain {{ toChainId }}
+      <a
+        href="https://docs.kadena.io/learn/accounts#transfers-within-and-between-chainsh1647261648"
+        target="_blank"
+      >
+        Learn more
+      </a>
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import AlertIcon from "@action/icons/send/alert-icon.vue";
+import CrossChainIcon from "@action/icons/common/cross-chain.vue";
 
 interface IProps {
-  errorMsg: string;
+  fromChainId: string;
+  toChainId: string;
 }
 
 defineProps<IProps>();
@@ -19,9 +29,9 @@ defineProps<IProps>();
 <style lang="less">
 @import "~@action/styles/theme.less";
 
-.send-alert {
+.cross-chain-alert {
+  background: @primary;
   margin: 0 32px 8px 32px;
-  background: @error01;
   border-radius: 10px;
   padding: 12px 16px 12px 57px;
   position: relative;
@@ -32,10 +42,11 @@ defineProps<IProps>();
     left: 16px;
     top: 50%;
     margin-top: -12px;
+    fill: @white;
   }
 
   p {
-    color: @error;
+    color: @white;
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
@@ -43,7 +54,7 @@ defineProps<IProps>();
     margin: 0;
 
     a {
-      color: @error;
+      color: @white;
 
       &:hover {
         text-decoration: none;

@@ -53,6 +53,13 @@
                   : ""
               }}
             </span>
+
+            <span
+              v-if="activity.crossChainId !== null"
+              title="Cross-chain transaction"
+            >
+              <cross-chain-icon />
+            </span>
           </p>
         </div>
       </a>
@@ -155,6 +162,7 @@ import { fromBase } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
 import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
+import CrossChainIcon from "@action/icons/common/cross-chain.vue";
 import { KDAToken } from "@/providers/kadena/types/kda-token";
 import SendSpinnerAnimation from "@action/icons/send/send-spinner-animation.vue";
 
@@ -351,10 +359,12 @@ const sendAction = async () => {
             color: @error;
           }
         }
-      }
 
-      &-crosschain-superscript {
-        color: @secondaryLabel;
+        svg {
+          width: 16px;
+          height: 16px;
+          margin-left: 4px;
+        }
       }
 
       &-status {
