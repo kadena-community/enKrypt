@@ -5,8 +5,8 @@
     />
     <verify-finish-crosschain-transaction
       v-if="txData.transactionType === TransactionType.finish_crosschain"
-      :selectedAccountName="selectedAccountName"
-      :selectedAccountAddress="selectedAccountAddress"
+      :selected-account-name="selectedAccountName"
+      :selected-account-address="selectedAccountAddress"
     />
   </div>
 </template>

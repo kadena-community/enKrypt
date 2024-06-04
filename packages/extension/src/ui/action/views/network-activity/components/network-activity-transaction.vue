@@ -66,15 +66,15 @@
 
       <div class="network-activity__transaction-amount">
         <button
-          class="network-activity__transaction-finish-tx-button"
           v-if="activity.status === ActivityStatus.needs_continuation"
+          class="network-activity__transaction-finish-tx-button"
           @click="sendAction"
         >
           Send finish tx
         </button>
         <span
-          class="network-activity__transaction-waiting-for-spv-chip"
           v-if="activity.status === ActivityStatus.waiting_for_spv"
+          class="network-activity__transaction-waiting-for-spv-chip"
         >
           Waiting for SPV
           <send-spinner-animation />
@@ -146,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { onBeforeMount, computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
 import { routes as RouterNames } from "@/ui/action/router";
@@ -193,9 +193,6 @@ const transactionURL = computed(() => {
     "[[txHash]]",
     props.activity.transactionHash
   );
-});
-const continueUrl = computed(() => {
-  return `https://tools.kadena.io/transactions/cross-chain-transfer-finisher?reqKey=${props.activity.transactionHash}`;
 });
 const getFiatValue = computed(() => {
   return new BigNumber(props.activity.token.price || "0").times(

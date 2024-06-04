@@ -349,12 +349,6 @@ const validateFields = async () => {
       }
 
       const nativeAsset = accountAssets.value[0];
-      const txFeeHuman = fromBase(
-        rawFee?.toString() ?? "",
-        nativeAsset.decimals!
-      );
-
-      const txPrice = new BigNumber(nativeAsset.price!).times(txFeeHuman);
 
       const txFeeObject = CreateTxFeeObject(
         gasFee,

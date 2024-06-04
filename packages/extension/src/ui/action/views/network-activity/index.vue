@@ -19,7 +19,7 @@
             :key="index + `${forceUpdateVal}`"
             :activity="item"
             :network="network"
-            :selectedAccount="props.accountInfo.selectedAccount"
+            :selected-account="props.accountInfo.selectedAccount"
           />
         </div>
         <!-- <div class="network-activity__header">July</div>
@@ -80,7 +80,6 @@ import Swap, {
 import EvmAPI from "@/providers/ethereum/libs/api";
 import type Web3Eth from "web3-eth";
 import { KadenaNetwork } from "../../../../providers/kadena/types/kadena-network";
-import { ITransactionDescriptor } from "@kadena/client";
 import { ChainId, Pact } from "@kadena/client";
 import KadenaAPI from "@/providers/kadena/libs/api";
 
@@ -191,12 +190,6 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
           (event) => event.name === "TRANSFER_XCHAIN"
         )[0];
         activity.crossChainId = transferXChainEvent.params[3];
-
-        const transactionDescriptor: ITransactionDescriptor = {
-          requestKey: activity.transactionHash,
-          chainId: activity.chainId,
-          networkId: kadenaNetwork.options.kadenaApiOptions.networkId,
-        };
 
         let spv;
         try {

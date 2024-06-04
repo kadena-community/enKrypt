@@ -54,7 +54,7 @@
       :is-done="isSendDone"
       :is-window-popup="isWindowPopup"
       :status="sendProcessStatus"
-      :isCrosschainFinishTransaction="true"
+      :is-crosschain-finish-transaction="true"
     />
   </div>
 </template>
@@ -66,9 +66,7 @@ import CloseIcon from "@action/icons/common/close-icon.vue";
 import BaseButton from "@action/components/base-button/index.vue";
 import VerifyTransactionNetwork from "@/providers/common/ui/verify-transaction/verify-transaction-network.vue";
 import VerifyTransactionAccount from "@/providers/common/ui/verify-transaction/verify-transaction-account.vue";
-import VerifyTransactionAmount from "@/providers/common/ui/verify-transaction/verify-transaction-amount.vue";
 import VerifyTransactionFee from "@/providers/common/ui/verify-transaction/verify-transaction-fee.vue";
-import SendAlert from "../components/send-alert.vue";
 import HardwareWalletMsg from "@/providers/common/ui/verify-transaction/hardware-wallet-msg.vue";
 import SendProcess from "../components/send-process.vue";
 import PublicKeyRing from "@/libs/keyring/public-keyring";
@@ -79,10 +77,9 @@ import {
   getNetworkByName,
 } from "@/libs/utils/networks";
 import { EnkryptAccount } from "@enkryptcom/types";
-import CustomScrollbar from "@action/components/custom-scrollbar/index.vue";
 import { BaseNetwork } from "@/types/base-network";
 import ActivityState from "@/libs/activity-state";
-import { Activity, ActivityStatus, ActivityType } from "@/types/activity";
+import { ActivityStatus } from "@/types/activity";
 import { KDAToken } from "@/providers/kadena/types/kda-token";
 import KadenaAPI from "@/providers/kadena/libs/api";
 import { KadenaNetwork } from "@/providers/kadena/types/kadena-network";
@@ -90,8 +87,6 @@ import { KadenaNetwork } from "@/providers/kadena/types/kadena-network";
 const isSendDone = ref(false);
 const sendProcessStatus = ref("");
 const account = ref<EnkryptAccount>();
-const fromChainId = ref<string>();
-const toChainId = ref<string>();
 const kdaToken = ref<KDAToken>();
 const KeyRing = new PublicKeyRing();
 const route = useRoute();
@@ -199,7 +194,7 @@ const sendCrossChainFinishTransaction = async () => {
       txData.toChainId.toString()
     );
 
-    const result = await networkApi.sendTransaction(
+    await networkApi.sendTransaction(
       secondStepTransaction,
       txData.toChainId.toString()
     );

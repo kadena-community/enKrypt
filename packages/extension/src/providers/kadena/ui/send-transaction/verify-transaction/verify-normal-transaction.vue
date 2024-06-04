@@ -12,7 +12,7 @@
           </a>
         </div>
 
-        <div class="verify-transaction__hardware" v-if="account?.isHardware">
+        <div v-if="account?.isHardware" class="verify-transaction__hardware">
           <hardware-wallet-msg :wallet-type="account?.walletType" />
         </div>
 
