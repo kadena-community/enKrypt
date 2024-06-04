@@ -238,12 +238,15 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
           activity.status = ActivityStatus.failed;
         }
       } else if (activity.status === ActivityStatus.executing_continuation) {
-        activityState
-          .updateActivity(activity, {
-            address: activityAddress.value,
-            network: props.network.name,
-          })
-          .then(() => updateVisibleActivity(activity));
+        if (!activity.uiUpdated) {
+          activity.uiUpdated = true;
+          activityState
+            .updateActivity(activity, {
+              address: activityAddress.value,
+              network: props.network.name,
+            })
+            .then(() => updateVisibleActivity(activity));
+        }
 
         const tx = Pact.builder
           .continuation({
