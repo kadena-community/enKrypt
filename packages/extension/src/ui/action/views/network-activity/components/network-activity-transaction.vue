@@ -47,7 +47,9 @@
               class="network-activity__transaction-info-chainid"
               >{{
                 activity.crossChainId !== null
-                  ? `to chain ${activity.crossChainId}`
+                  ? `${activity.isIncoming ? "from" : "to"} chain ${
+                      activity.crossChainId
+                    }`
                   : ""
               }}
             </span>
@@ -61,14 +63,15 @@
           v-if="activity.status === ActivityStatus.needs_continuation"
           @click="sendAction"
         >
-          Finish tx
+          Send finish tx
         </button>
-        <button
-          class="network-activity__transaction-finish-tx-button"
+        <span
+          class="network-activity__transaction-waiting-for-spv-chip"
           v-if="activity.status === ActivityStatus.waiting_for_spv"
         >
-          waiting_for_spv
-        </button>
+          Waiting for SPV
+          <send-spinner-animation />
+        </span>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
@@ -153,6 +156,7 @@ import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
 import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
 import { KDAToken } from "@/providers/kadena/types/kda-token";
+import SendSpinnerAnimation from "@action/icons/send/send-spinner-animation.vue";
 
 const props = defineProps({
   activity: {
@@ -239,7 +243,6 @@ onMounted(() => {
 });
 
 const sendAction = async () => {
-  console.log("send action 1");
   const secondStepTransaction = await kdaToken.value!
     .buildCrossChainSecondStepTransaction!(
     props.selectedAccount,
@@ -250,18 +253,15 @@ const sendAction = async () => {
     props.activity.chainId.toString()
   );
 
-  console.log("send action 2");
   const networkApi = (await props.network.api()) as KadenaAPI;
   const transactionResult = await networkApi.sendLocalTransaction(
     secondStepTransaction
   );
 
-  console.log("send action 3");
   const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
   const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
   const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
 
-  console.log("send action 4");
   const txFeeObject = CreateTxFeeObject(gasFee, 12, kdaToken.value);
 
   const txVerifyInfo = {
@@ -272,7 +272,6 @@ const sendAction = async () => {
     txFee: txFeeObject,
   };
 
-  console.log("send action 5");
   const routedRoute = router.resolve({
     name: RouterNames.verify.name,
     query: {
@@ -397,7 +396,31 @@ const sendAction = async () => {
 
     &-finish-tx-button {
       background-color: #ffffff;
+      border: 1.5px solid;
       font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      padding: 1px 6px;
+      cursor: pointer;
+    }
+
+    &-waiting-for-spv-chip {
+      border: 1.5px solid;
+      font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      padding: 0 4px;
     }
   }
 }
