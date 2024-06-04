@@ -4,13 +4,14 @@
 
     <p>
       This will be a cross-chain transaction from chain {{ fromChainId }} to
-      chain {{ toChainId }}
+      chain {{ toChainId }}.
       <a
         href="https://docs.kadena.io/learn/accounts#transfers-within-and-between-chainsh1647261648"
         target="_blank"
       >
         Learn more
       </a>
+      .
     </p>
   </div>
 </template>
@@ -30,23 +31,20 @@ defineProps<IProps>();
 @import "~@action/styles/theme.less";
 
 .cross-chain-alert {
-  background: @primary;
   margin: 0 32px 8px 32px;
-  border-radius: 10px;
   padding: 12px 16px 12px 57px;
   position: relative;
-  box-sizing: border-box;
 
   svg {
     position: absolute;
     left: 16px;
     top: 50%;
     margin-top: -12px;
-    fill: @white;
+    fill: @primary;
   }
 
   p {
-    color: @white;
+    color: @primary;
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
@@ -54,7 +52,7 @@ defineProps<IProps>();
     margin: 0;
 
     a {
-      color: @white;
+      color: @primary;
 
       &:hover {
         text-decoration: none;
