@@ -244,7 +244,7 @@ onMounted(() => {
   else if (props.activity.status === ActivityStatus.needs_continuation)
     status.value = "Sent";
   else if (props.activity.status === ActivityStatus.executing_continuation)
-    status.value = "Sending finish transaction";
+    status.value = "Sending finish tx";
   else {
     status.value = "Failed";
   }
