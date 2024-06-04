@@ -194,7 +194,7 @@ const getInfo = async (activity: Activity, info: any, timer: any) => {
         let spv;
         try {
           const fetchSpvResponse = await fetch(
-            `${kadenaNetwork.node}/testnet04/chain/${activity.chainId}/pact/spv`,
+            `${kadenaNetwork.node}/${kadenaNetwork.options.kadenaApiOptions.networkId}/chain/${activity.chainId}/pact/spv`,
             {
               method: "POST",
               headers: {

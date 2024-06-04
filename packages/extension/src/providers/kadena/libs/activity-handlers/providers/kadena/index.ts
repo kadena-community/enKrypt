@@ -6,6 +6,7 @@ import { NetworkEndpoints, NetworkTtls } from "./configs";
 import { toBase } from "@enkryptcom/utils";
 import KadenaAPI from "@/providers/kadena/libs/api";
 import { ChainId, Pact } from "@kadena/client";
+import { KadenaNetwork } from "@/providers/kadena/types/kadena-network";
 
 const getAddressActivity = async (
   address: string,
@@ -28,6 +29,7 @@ export default async (
   network: BaseNetwork,
   address: string
 ): Promise<Activity[]> => {
+  const networkOptions = (network as KadenaNetwork).options;
   const networkName = network.name as keyof typeof NetworkEndpoints;
   const enpoint = NetworkEndpoints[networkName];
   const ttl = NetworkTtls[networkName];
@@ -121,7 +123,7 @@ export default async (
         activity.crossChainId !== null
       ) {
         const fetchSpvResponse = await fetch(
-          `${network.node}/testnet04/chain/${activity.chainId}/pact/spv`,
+          `${network.node}/${networkOptions.kadenaApiOptions.networkId}/chain/${activity.chainId}/pact/spv`,
           {
             method: "POST",
             headers: {
