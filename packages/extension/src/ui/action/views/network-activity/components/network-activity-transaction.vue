@@ -46,7 +46,7 @@
               v-if="network.subNetworks && activity.chainId !== undefined"
               class="network-activity__transaction-info-chainid"
               >{{
-                activity.crossChainId !== null
+                !!activity.crossChainId
                   ? `${activity.isIncoming ? "from" : "to"} chain ${
                       activity.crossChainId
                     }`
@@ -55,7 +55,7 @@
             </span>
 
             <span
-              v-if="activity.crossChainId !== null"
+              v-if="!!activity.crossChainId"
               title="Cross-chain transaction"
             >
               <cross-chain-icon />
