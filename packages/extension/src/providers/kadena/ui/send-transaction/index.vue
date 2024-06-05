@@ -49,6 +49,19 @@
         @close="toggleSelectContactTo"
       />
 
+      <send-subnetwork-select
+        :network="network"
+        :subnetwork="selectedSubnetwork"
+        @update:toggle-subnetwork-select="toggleSelectSubnetwork"
+      />
+
+      <send-subnetwork-list
+        v-show="isOpenSelectSubnetwork"
+        :subnetworks="network.subNetworks ?? []"
+        @close="toggleSelectSubnetwork"
+        @update:select-subnetwork="selectSubnetwork"
+      />
+
       <send-token-select
         :token="selectedAsset"
         @update:toggle-token-select="toggleSelectToken"
@@ -75,7 +88,13 @@
         :fee="fee ?? { nativeSymbol: props.network.currencyName }"
       />
 
-      <send-alert v-show="errorMsg" :error-msg="errorMsg" />
+      <send-alert v-if="errorMsg" :error-msg="errorMsg" />
+
+      <cross-chain-alert
+        v-if="!errorMsg && fromChainId !== selectedSubnetwork.id"
+        :from-chain-id="fromChainId"
+        :to-chain-id="selectedSubnetwork.id"
+      />
 
       <div class="send-transaction__buttons">
         <div class="send-transaction__buttons-cancel">
@@ -103,9 +122,12 @@ import SendContactsList from "./components/send-contacts-list.vue";
 import SendFromContactsList from "./components/send-from-contacts-list.vue";
 import SendTokenSelect from "./components/send-token-select.vue";
 import AssetsSelectList from "@action/views/assets-select-list/index.vue";
+import SendSubnetworkSelect from "./components/send-subnetwork-select.vue";
+import SendSubnetworkList from "./components/send-subnetwork-list.vue";
 import SendInputAmount from "./components/send-input-amount.vue";
 import SendFeeSelect from "./components/send-fee-select.vue";
 import SendAlert from "./components/send-alert.vue";
+import CrossChainAlert from "./components/cross-chain-alert.vue";
 import BaseButton from "@action/components/base-button/index.vue";
 import { AccountsHeaderData } from "@action/types/account";
 import { GasFeeInfo } from "@/providers/ethereum/ui/types";
@@ -113,16 +135,15 @@ import { toBN } from "web3-utils";
 import { formatFloatingPointValue } from "@/libs/utils/number-formatter";
 import { fromBase, toBase, isValidDecimals } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
-import { VerifyTransactionParams } from "../types";
+import { VerifyTransactionParams, TransactionType } from "../types";
 import { routes as RouterNames } from "@/ui/action/router";
 import { KDAToken } from "@/providers/kadena/types/kda-token";
 import PublicKeyRing from "@/libs/keyring/public-keyring";
 import { GenericNameResolver, CoinType } from "@/libs/name-resolver";
 import { KadenaNetwork } from "../../types/kadena-network";
 import KadenaAPI from "@/providers/kadena/libs/api";
-import getUiPath from "@/libs/utils/get-ui-path";
-import { ProviderName } from "@/types/provider";
-import Browser from "webextension-polyfill";
+import { SubNetworkOptions } from "@/types/base-network";
+import { CreateTxFeeObject } from "../libs/createTxFeeObject";
 
 const props = defineProps({
   network: {
@@ -139,7 +160,7 @@ const route = useRoute();
 const router = useRouter();
 const nameResolver = new GenericNameResolver();
 const errorMsg = ref("");
-
+const fromChainId = ref("");
 const addressInputTo = ref();
 const addressInputFrom = ref();
 const isOpenSelectContactFrom = ref(false);
@@ -147,6 +168,7 @@ const isOpenSelectContactTo = ref(false);
 const addressFrom = ref(props.accountInfo.selectedAccount!.address);
 const addressTo = ref("");
 const isOpenSelectToken = ref(false);
+const isOpenSelectSubnetwork = ref(false);
 const amount = ref<string>();
 const fee = ref<GasFeeInfo | null>(null);
 const accountAssets = ref<KDAToken[]>([]);
@@ -159,6 +181,9 @@ const selectedAsset = ref<KDAToken | Partial<KDAToken>>(
     symbol: "loading",
     decimals: props.network.decimals,
   })
+);
+const selectedSubnetwork = ref<SubNetworkOptions>(
+  props.network.subNetworks![0] as SubNetworkOptions
 );
 const sendMax = ref(false);
 
@@ -192,6 +217,10 @@ const validateFields = async () => {
   }
 
   try {
+    const networkApi = (await props.network.api()) as KadenaAPI;
+    fromChainId.value = await networkApi.getChainId();
+    const toChainId = selectedSubnetwork.value.id;
+
     if (isAddress.value) {
       const to = props.network.displayAddress(addressTo.value);
       const from = props.network.displayAddress(addressFrom.value);
@@ -199,25 +228,29 @@ const validateFields = async () => {
         from,
         props.network
       );
+
       if (accountDetailFrom.error) {
-        errorMsg.value = "Not enough balance"; // account doesnt exist
+        errorMsg.value = "Not enough balance";
         return;
       }
+
       if (!props.network.isAddress(to)) {
-        const accountDetail = await accountAssets.value[0].getAccountDetails(
+        const accountDetailTo = await accountAssets.value[0].getAccountDetails(
           to,
           props.network
         );
 
-        if (accountDetail.error) {
+        if (accountDetailTo.error) {
           fieldsValidation.value.addressTo = false;
           errorMsg.value = 'Invalid "To" address';
           return;
         }
       }
-      if (to == from) {
+
+      if (toChainId == fromChainId.value && to == from) {
         fieldsValidation.value.addressTo = false;
-        errorMsg.value = '"To" address cannot be the same as "From" address';
+        errorMsg.value =
+          '"To" address cannot be the same as "From" address on the same chain';
         return;
       }
     } else {
@@ -227,6 +260,7 @@ const validateFields = async () => {
 
     let rawAmount = toBN(toBase("0", selectedAsset.value.decimals!));
     const minAmount = toBN(toBase("0.000001", props.network.decimals));
+
     if (amount.value) {
       if (!isValidDecimals(amount.value, selectedAsset.value.decimals!)) {
         fieldsValidation.value.amount = false;
@@ -244,33 +278,51 @@ const validateFields = async () => {
         return;
       }
     }
+
     if (amount.value || sendMax.value) {
-      const localTransaction = await selectedAsset.value.buildTransaction!(
-        addressTo.value,
-        props.accountInfo.selectedAccount,
-        sendMax.value
-          ? fromBase(minAmount.toString(), props.network.decimals)
-          : amount.value!,
-        props.network
-      );
-      const networkApi = (await props.network.api()) as KadenaAPI;
+      let gasFee = 0.000025;
 
-      const transactionResult = await networkApi.sendLocalTransaction(
-        localTransaction
-      );
+      if (!props.accountInfo.selectedAccount!.isHardware) {
+        const localTransaction =
+          fromChainId.value == toChainId
+            ? await selectedAsset.value.buildSameChainTransaction!(
+                addressTo.value,
+                props.accountInfo.selectedAccount,
+                sendMax.value
+                  ? fromBase(minAmount.toString(), props.network.decimals)
+                  : amount.value!,
+                props.network,
+                fromChainId.value
+              )
+            : await selectedAsset.value.buildCrossChainFirstStepTransaction!(
+                addressTo.value,
+                props.accountInfo.selectedAccount,
+                sendMax.value
+                  ? fromBase(minAmount.toString(), props.network.decimals)
+                  : amount.value!,
+                props.network,
+                fromChainId.value,
+                toChainId
+              );
 
-      if (transactionResult.result.status !== "success") {
-        fieldsValidation.value.amount = false;
-        console.log(transactionResult.result.error);
-        errorMsg.value =
-          (transactionResult.result.error as any).message ||
-          "An error occurred";
-        return;
+        const transactionResult = await networkApi.sendLocalTransaction(
+          localTransaction
+        );
+
+        if (transactionResult.result.status !== "success") {
+          fieldsValidation.value.amount = false;
+          console.log(transactionResult.result.error);
+          errorMsg.value =
+            (transactionResult.result.error as any).message ||
+            "An error occurred";
+          return;
+        }
+
+        const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+        const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+
+        gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
       }
-
-      const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
-      const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
-      const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
 
       const rawFee = toBN(
         toBase(gasFee.toString(), selectedAsset.value.decimals!)
@@ -297,26 +349,21 @@ const validateFields = async () => {
       }
 
       const nativeAsset = accountAssets.value[0];
-      const txFeeHuman = fromBase(
-        rawFee?.toString() ?? "",
-        nativeAsset.decimals!
+
+      const txFeeObject = CreateTxFeeObject(
+        gasFee,
+        selectedAsset.value.decimals,
+        nativeAsset
       );
 
-      const txPrice = new BigNumber(nativeAsset.price!).times(txFeeHuman);
-
-      fee.value = {
-        fiatSymbol: "USD",
-        fiatValue: txPrice.toString(),
-        nativeSymbol: nativeAsset.symbol ?? "",
-        nativeValue: txFeeHuman.toString(),
-      };
+      fee.value = txFeeObject;
     }
   } catch (error: any) {
     errorMsg.value = error.message || "An error occurred";
   }
 };
 
-watch([selectedAsset, addressTo, amount], validateFields);
+watch([selectedAsset, addressTo, selectedSubnetwork, amount], validateFields);
 
 watch(addressFrom, () => {
   fetchTokens();
@@ -384,6 +431,10 @@ const toggleSelectToken = () => {
   isOpenSelectToken.value = !isOpenSelectToken.value;
 };
 
+const toggleSelectSubnetwork = () => {
+  isOpenSelectSubnetwork.value = !isOpenSelectSubnetwork.value;
+};
+
 const selectAccountFrom = (account: string) => {
   addressFrom.value = account;
   isOpenSelectContactFrom.value = false;
@@ -399,9 +450,14 @@ const selectToken = (token: KDAToken | Partial<KDAToken>) => {
   isOpenSelectToken.value = false;
 };
 
+const selectSubnetwork = (subnet: SubNetworkOptions) => {
+  selectedSubnetwork.value = subnet;
+  isOpenSelectSubnetwork.value = false;
+};
+
 const inputAmount = (number: string | undefined) => {
   sendMax.value = false;
-  amount.value = number ? (parseFloat(number) < 0 ? "" : number) : number;
+  amount.value = number;
 };
 
 const sendButtonTitle = computed(() => {
@@ -435,9 +491,18 @@ const isDisabled = computed(() => {
 const sendAction = async () => {
   const keyring = new PublicKeyRing();
   const fromAccount = await keyring.getAccount(addressFrom.value);
-  const networkApi = (await props.network.api()) as KadenaAPI;
-  const chainId = await networkApi.getChainId();
+  const toChainId = selectedSubnetwork.value.id;
+  let toAccount;
+
+  try {
+    toAccount = await keyring.getAccount(addressTo.value);
+  } catch {
+    // if the account do not exists on keyring,
+    // we will display the account address as the name
+  }
+
   const txVerifyInfo: VerifyTransactionParams = {
+    transactionType: TransactionType.normal,
     TransactionData: {
       from: fromAccount.address,
       to: addressTo.value,
@@ -455,11 +520,12 @@ const sendAction = async () => {
       name: selectedAsset.value.name || "",
       price: selectedAsset.value.price || "0",
     },
-    chainId: chainId,
+    toChainId: toChainId,
     fromAddress: fromAccount.address,
     fromAddressName: fromAccount.name,
     txFee: fee.value!,
     toAddress: addressTo.value,
+    toAddressName: toAccount?.name,
   };
 
   const routedRoute = router.resolve({
@@ -472,22 +538,7 @@ const sendAction = async () => {
     },
   });
 
-  if (fromAccount.isHardware) {
-    await Browser.windows.create({
-      url: Browser.runtime.getURL(
-        getUiPath(
-          `dot-hw-verify?id=${routedRoute.query.id}&txData=${routedRoute.query.txData}`,
-          ProviderName.kadena
-        )
-      ),
-      type: "popup",
-      focused: true,
-      height: 600,
-      width: 460,
-    });
-  } else {
-    router.push(routedRoute);
-  }
+  router.push(routedRoute);
 };
 </script>
 
@@ -513,7 +564,7 @@ const sendAction = async () => {
 
   &__header {
     position: relative;
-    padding: 24px 72px 12px 32px;
+    padding: 24px 72px 6px 32px;
 
     h3 {
       font-style: normal;

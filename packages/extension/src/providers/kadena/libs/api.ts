@@ -65,7 +65,7 @@ class API implements ProviderAPIInterface {
   async getBalanceByChainId(address: string, chainId: string): Promise<string> {
     const balance = await this.getBalanceAPI(
       this.displayAddress(address),
-      chainId
+      chainId.toString()
     );
 
     if (balance.result.status === "failure") {
@@ -97,23 +97,49 @@ class API implements ProviderAPIInterface {
       .setNetworkId(this.networkId)
       .createTransaction();
 
-    return this.dirtyRead(transaction);
+    return this.dirtyRead(transaction, chainId);
   }
 
   async sendLocalTransaction(
-    signedTranscation: ICommand
+    signedTransaction: ICommand | IUnsignedCommand,
+    options?: { signatureVerification: boolean; preflight: boolean },
+    _chainId?: string
   ): Promise<ICommandResult> {
-    const chainId = await this.getChainId();
-    const client = createClient(this.getApiHost(chainId));
-    return client.local(signedTranscation as ICommand);
+    const chainId = _chainId === undefined ? await this.getChainId() : _chainId;
+    const client = createClient(
+      this.getApiHost(chainId ?? (await this.getChainId()))
+    );
+    return client.local(signedTransaction, options);
   }
 
   async sendTransaction(
-    signedTranscation: ICommand
-  ): Promise<ITransactionDescriptor> {
+    transaction: ICommand | IUnsignedCommand,
+    chainId?: string,
+    listen = false
+  ): Promise<{
+    transactionDescriptor: ITransactionDescriptor;
+    commandResult: ICommandResult | undefined;
+  }> {
+    const clientChainId = chainId || (await this.getChainId());
+    const client = createClient(this.getApiHost(clientChainId));
+    const transactionDescriptor = await client.submit(transaction as ICommand);
+    const commandResult = listen
+      ? await client.listen(transactionDescriptor)
+      : undefined;
+
+    return { transactionDescriptor, commandResult };
+  }
+
+  async pollCreateSpv(
+    transactionDescriptor: ITransactionDescriptor,
+    targetChainId: string
+  ): Promise<string> {
     const chainId = await this.getChainId();
     const client = createClient(this.getApiHost(chainId));
-    return client.submit(signedTranscation as ICommand);
+    return client.pollCreateSpv(
+      transactionDescriptor,
+      targetChainId as ChainId
+    );
   }
 
   async listen(
@@ -125,10 +151,11 @@ class API implements ProviderAPIInterface {
   }
 
   async dirtyRead(
-    signedTranscation: ICommand | IUnsignedCommand
+    signedTranscation: ICommand | IUnsignedCommand,
+    chainId?: string
   ): Promise<ICommandResult> {
-    const chainId = await this.getChainId();
-    const client = createClient(this.getApiHost(chainId));
+    const clientChainId = chainId || (await this.getChainId());
+    const client = createClient(this.getApiHost(clientChainId));
     return client.dirtyRead(signedTranscation);
   }
 }

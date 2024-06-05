@@ -3,6 +3,7 @@ import KadenaAPI from "@/providers/kadena/libs/api";
 import {
   ChainId,
   ICommand,
+  IUnsignedCommand,
   Pact,
   addSignatures,
   readKeyset,
@@ -14,12 +15,31 @@ import { TransactionSigner } from "../ui/libs/signer";
 import { bufferToHex } from "@enkryptcom/utils";
 
 export abstract class KDABaseToken extends BaseToken {
-  public abstract buildTransaction(
+  public abstract buildSameChainTransaction(
     to: string,
     from: EnkryptAccount,
     amount: string,
-    network: KadenaNetwork
+    network: KadenaNetwork,
+    chainId: string
   ): Promise<ICommand>;
+
+  public abstract buildCrossChainFirstStepTransaction(
+    to: string,
+    from: EnkryptAccount,
+    amount: string,
+    network: KadenaNetwork,
+    fromChainId: string,
+    toChainId: string
+  ): Promise<ICommand>;
+
+  public abstract buildCrossChainSecondStepTransaction(
+    from: EnkryptAccount | any,
+    pactId: string,
+    spv: string,
+    useGasStation: boolean,
+    network: KadenaNetwork,
+    toChainId: string
+  ): Promise<IUnsignedCommand | ICommand>;
 
   public abstract getAccountDetails(
     account: string,
@@ -50,17 +70,16 @@ export class KDAToken extends KDABaseToken {
     throw new Error("KDA-send is not implemented here");
   }
 
-  public async buildTransaction(
+  public async buildSameChainTransaction(
     to: string,
     from: EnkryptAccount | any,
     amount: string,
-    network: KadenaNetwork
+    network: KadenaNetwork,
+    chainId?: string
   ): Promise<ICommand> {
     to = network.displayAddress(to);
-    // const accountDetails = await this.getAccountDetails(to, network);
-    const api = (await network.api()) as KadenaAPI;
-    const chainID = await api.getChainId();
     const keySetAccount = to.startsWith("k:") ? to.replace("k:", "") : to;
+
     const unsignedTransaction = Pact.builder
       .execution(
         Pact.modules.coin["transfer-create"](
@@ -80,17 +99,121 @@ export class KDAToken extends KDABaseToken {
         withCap("coin.GAS"),
       ])
       .setMeta({
-        chainId: (chainID ??
+        chainId: (chainId ??
           network.options.kadenaApiOptions.chainId) as ChainId,
         senderAccount: network.displayAddress(from.address),
       })
       .setNetworkId(network.options.kadenaApiOptions.networkId)
       .createTransaction();
 
+    return await this.signTransaction(unsignedTransaction, from, network);
+  }
+
+  public async buildCrossChainFirstStepTransaction(
+    to: string,
+    from: EnkryptAccount | any,
+    amount: string,
+    network: KadenaNetwork,
+    fromChainId: string,
+    toChainId: string
+  ): Promise<ICommand> {
+    to = network.displayAddress(to);
+    const keySetAccount = to.startsWith("k:") ? to.replace("k:", "") : to;
+
+    const unsignedTransaction = Pact.builder
+      .execution(
+        Pact.modules.coin.defpact["transfer-crosschain"](
+          network.displayAddress(from.address),
+          to,
+          readKeyset("ks"),
+          toChainId,
+          {
+            decimal: amount,
+          }
+        )
+      )
+      .addKeyset("ks", "keys-all", keySetAccount)
+      .addSigner(from.publicKey.replace("0x", ""), (withCap: any) => [
+        withCap(
+          "coin.TRANSFER_XCHAIN",
+          network.displayAddress(from.address),
+          to,
+          {
+            decimal: amount,
+          },
+          toChainId
+        ),
+        withCap("coin.GAS"),
+      ])
+      .setMeta({
+        chainId: (fromChainId ??
+          network.options.kadenaApiOptions.chainId) as ChainId,
+        senderAccount: network.displayAddress(from.address),
+      })
+      .setNetworkId(network.options.kadenaApiOptions.networkId)
+      .createTransaction();
+
+    return await this.signTransaction(unsignedTransaction, from, network);
+  }
+
+  public async buildCrossChainSecondStepTransaction(
+    from: EnkryptAccount | any,
+    pactId: string,
+    spv: string,
+    useGasStation: boolean,
+    network: KadenaNetwork,
+    toChainId: string
+  ): Promise<IUnsignedCommand | ICommand> {
+    const builder = Pact.builder
+      .continuation({
+        pactId: pactId,
+        proof: spv,
+        rollback: false,
+        step: 1,
+      })
+      .setMeta({
+        chainId: toChainId as ChainId,
+        senderAccount: useGasStation
+          ? "kadena-xchain-gas"
+          : network.displayAddress(from.address),
+        gasLimit: 850,
+      })
+      .setNetworkId(network.options.kadenaApiOptions.networkId);
+
+    if (useGasStation) {
+      return builder.createTransaction();
+    } else {
+      builder.addSigner(from.publicKey.replace("0x", ""), (withCap: any) => [
+        withCap("coin.GAS"),
+      ]);
+
+      const transaction = builder.createTransaction();
+      return await this.signTransaction(transaction, from, network);
+    }
+  }
+
+  private async signTransaction(
+    unsignedTransaction: IUnsignedCommand,
+    account: EnkryptAccount | any,
+    network: KadenaNetwork
+  ): Promise<ICommand> {
+    if (account.isHardware) {
+      const transaction = await TransactionSigner({
+        account,
+        payload: unsignedTransaction.cmd,
+        network,
+      }).then((res) => {
+        if (res.error) return Promise.reject(res.error);
+        return JSON.parse(res.result as string);
+      });
+
+      return transaction as ICommand;
+    }
+
     const transaction = await TransactionSigner({
-      account: from,
-      network: network,
+      account,
       payload: bufferToHex(blake2AsU8a(unsignedTransaction.cmd)),
+      network,
     }).then((res) => {
       if (res.error) return Promise.reject(res.error);
       else
@@ -102,7 +225,7 @@ export class KDAToken extends KDABaseToken {
 
     return addSignatures(unsignedTransaction, {
       sig: transaction.signature,
-      pubKey: from.pubKey,
+      pubKey: account.pubKey,
     }) as ICommand;
   }
 
