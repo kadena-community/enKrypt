@@ -163,9 +163,8 @@ const sendAction = async () => {
     isSendDone.value = true;
 
     console.error("error", error);
-    errorMsg.value = `Error: ${
-      error.message || "Could not send the transaction"
-    }`;
+    const errorDetails = error?.error?.message || "Unknown error";
+    errorMsg.value = `Error: Could not send the transaction (${errorDetails})`;
   }
 };
 
@@ -367,7 +366,7 @@ const isHasScroll = () => {
 
   &__error {
     position: absolute;
-    top: 480px;
+    top: 460px;
     width: 100%;
     background-color: white;
   }
