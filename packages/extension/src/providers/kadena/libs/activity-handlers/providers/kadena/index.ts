@@ -4,6 +4,9 @@ import { Activity, ActivityStatus, ActivityType } from "@/types/activity";
 import { BaseNetwork } from "@/types/base-network";
 import { NetworkEndpoints, NetworkTtls } from "./configs";
 import { toBase } from "@enkryptcom/utils";
+import KadenaAPI from "@/providers/kadena/libs/api";
+import { ChainId, Pact } from "@kadena/client";
+import { KadenaNetwork } from "@/providers/kadena/types/kadena-network";
 
 const getAddressActivity = async (
   address: string,
@@ -26,10 +29,14 @@ export default async (
   network: BaseNetwork,
   address: string
 ): Promise<Activity[]> => {
+  const networkOptions = (network as KadenaNetwork).options;
   const networkName = network.name as keyof typeof NetworkEndpoints;
   const enpoint = NetworkEndpoints[networkName];
   const ttl = NetworkTtls[networkName];
-  const activities = await getAddressActivity(
+  const api = (await network.api()) as KadenaAPI;
+  const chainId = await api.getChainId();
+
+  let activities = await getAddressActivity(
     address,
     enpoint,
     ttl,
@@ -45,56 +52,124 @@ export default async (
       .then((mdata) => (price = mdata || "0"));
   }
 
-  const groupActivities = activities.reduce((acc: any, activity: any) => {
-    if (!acc[activity.requestKey]) {
-      acc[activity.requestKey] = activity;
-    }
-    if (activity.idx === 1) {
-      acc[activity.requestKey] = activity;
-    }
-    return acc;
-  }, {});
+  const groupActivities = activities
+    .filter(
+      (activity) =>
+        activity.chain == chainId || activity.crossChainId == chainId
+    )
+    .reduce((acc: any, activity: any) => {
+      if (!acc[activity.requestKey]) {
+        acc[activity.requestKey] = activity;
+      }
+      if (activity.idx !== 0) {
+        acc[activity.requestKey] = activity;
+      }
+      return acc;
+    }, {});
 
-  return Object.values(groupActivities).map((activity: any, i: number) => {
-    const rawAmount = toBase(
-      activity.amount
-        ? parseFloat(activity.amount).toFixed(network.decimals)
-        : "0",
-      network.decimals
-    );
-    // note: intentionally not using fromAccount === some-value
-    // I want to match both null and "" in fromAccount/toAccount
-    // actual values will be a (truthy) string
-    let { fromAccount, toAccount } = activity;
-    if (!fromAccount && activity.crossChainAccount) {
-      fromAccount = activity.crossChainAccount;
+  activities = Object.values(groupActivities).map(
+    (activity: any, i: number) => {
+      const rawAmount = toBase(
+        activity.amount
+          ? parseFloat(activity.amount).toFixed(network.decimals)
+          : "0",
+        network.decimals
+      );
+
+      // note: intentionally not using fromAccount === some-value
+      // I want to match both null and "" in fromAccount/toAccount
+      // actual values will be a (truthy) string
+      let { fromAccount, toAccount } = activity;
+      if (!fromAccount && activity.crossChainAccount) {
+        fromAccount = activity.crossChainAccount;
+      }
+      if (!toAccount && activity.crossChainAccount) {
+        toAccount = activity.crossChainAccount;
+      }
+
+      return {
+        nonce: i.toString(),
+        from: fromAccount,
+        to: toAccount,
+        isIncoming:
+          (!activity.crossChainId && fromAccount !== address) ||
+          (activity.crossChainId && activity.crossChainId === chainId),
+        network: network.name,
+        rawInfo: activity,
+        chainId: activity.chain.toString(),
+        crossChainId: activity.crossChainId,
+        status:
+          activity.idx !== 0 ? ActivityStatus.success : ActivityStatus.failed,
+        timestamp: new Date(activity.blockTime).getTime(),
+        value: rawAmount,
+        transactionHash: activity.requestKey,
+        type: ActivityType.transaction,
+        token: {
+          decimals: network.decimals,
+          icon: network.icon,
+          name: network.currencyNameLong,
+          symbol:
+            activity.token !== "coin" ? activity.token : network.currencyName,
+          price: price,
+        },
+      };
     }
-    if (!toAccount && activity.crossChainAccount) {
-      toAccount = activity.crossChainAccount;
-    }
-    return {
-      nonce: i.toString(),
-      from: fromAccount,
-      to: toAccount,
-      isIncoming: activity.fromAccount !== address,
-      network: network.name,
-      rawInfo: activity,
-      chainId: activity.chain.toString(),
-      crossChainId: activity.crossChainId,
-      status:
-        activity.idx === 1 ? ActivityStatus.success : ActivityStatus.failed,
-      timestamp: new Date(activity.blockTime).getTime(),
-      value: rawAmount,
-      transactionHash: activity.requestKey,
-      type: ActivityType.transaction,
-      token: {
-        decimals: network.decimals,
-        icon: network.icon,
-        name: network.currencyNameLong,
-        symbol:
-          activity.token !== "coin" ? activity.token : network.currencyName,
-        price: price,
-      },
-    };
-  });
+  );
+
+  await Promise.allSettled(
+    activities.map(async (activity: any) => {
+      if (
+        activity.status === ActivityStatus.success &&
+        activity.crossChainId !== null
+      ) {
+        const fetchSpvResponse = await fetch(
+          `${network.node}/${networkOptions.kadenaApiOptions.networkId}/chain/${activity.chainId}/pact/spv`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              requestKey: activity.transactionHash,
+              targetChainId: String(activity.crossChainId),
+            }),
+          }
+        );
+
+        const spv = await fetchSpvResponse.json();
+        activity.spv = spv;
+
+        const tx = Pact.builder
+          .continuation({
+            proof: spv,
+            data: {},
+            pactId: activity.transactionHash,
+            rollback: false,
+            step: 1,
+          })
+          .setMeta({
+            chainId: String(activity.rawInfo.crossChainId) as ChainId,
+            senderAccount: activity.from,
+          })
+          .createTransaction();
+
+        const transactionResult = await api.sendLocalTransaction(
+          tx,
+          { signatureVerification: false, preflight: false },
+          String(activity.rawInfo.crossChainId) as ChainId
+        );
+
+        if (transactionResult.result.status === "success") {
+          activity.status = ActivityStatus.needs_continuation;
+
+          const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+          const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+          const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
+
+          activity.necessaryGasFeeToContinuation = gasFee;
+        }
+      }
+    })
+  );
+  return activities;
 };

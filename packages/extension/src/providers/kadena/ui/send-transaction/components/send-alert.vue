@@ -1,6 +1,7 @@
 <template>
   <div class="send-alert">
     <alert-icon />
+
     <p>{{ errorMsg }}</p>
   </div>
 </template>
@@ -34,11 +35,11 @@ defineProps<IProps>();
   }
 
   p {
+    color: @error;
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.25px;
-    color: @error;
     margin: 0;
 
     a {

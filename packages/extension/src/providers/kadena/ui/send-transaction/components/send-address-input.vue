@@ -69,19 +69,18 @@ defineExpose({ addressInput, pasteFromClipboard });
 const address = computed({
   get: () => {
     try {
-      if (isFocus.value && props.isAddress) {
-        return props.network.displayAddress(props.value);
-      } else if (props.isAddress) {
+      if (props.isAddress && !isFocus.value) {
         return replaceWithEllipsis(
           props.network.displayAddress(props.value),
           6,
           6
         );
       }
-      return props.value;
     } catch {
-      return props.value;
+      return props.network.displayAddress(props.value);
     }
+
+    return props.network.displayAddress(props.value);
   },
   set: (value) => {
     emit("update:inputAddress", value);
@@ -98,9 +97,9 @@ const changeFocus = (val: FocusEvent) => {
 @import "~@action/styles/theme.less";
 
 .send-address-input {
-  height: 64px;
+  height: 56px;
   background: #ffffff;
-  margin: 12px 32px 8px 32px;
+  margin: 8px 32px 8px 32px;
   box-sizing: border-box;
   border: 1px solid @gray02;
   box-sizing: border-box;
@@ -116,7 +115,7 @@ const changeFocus = (val: FocusEvent) => {
   &.focus {
     border: 2px solid @primary;
     width: calc(~"100% - 62px");
-    margin: 12px 31px 8px 31px;
+    margin: 8px 31px 8px 31px;
   }
 
   &__avatar {

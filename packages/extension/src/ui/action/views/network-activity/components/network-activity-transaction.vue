@@ -3,12 +3,12 @@
     v-if="activity.type === ActivityType.transaction"
     class="container-empty"
   >
-    <a
-      :href="transactionURL"
-      target="_blank"
-      class="network-activity__transaction"
-    >
-      <div class="network-activity__transaction-info">
+    <div class="network-activity__transaction">
+      <a
+        :href="transactionURL"
+        target="_blank"
+        class="network-activity__transaction-info"
+      >
         <img
           :src="
             network.identicon(activity.isIncoming ? activity.from : activity.to)
@@ -27,12 +27,6 @@
                 6
               )
             }}
-            <span v-if="Number.isFinite(activity.crossChainId)">
-              <sup
-                class="network-activity__transaction-info-crosschain-superscript"
-                >⛓️{{ activity.crossChainId }}</sup
-              >
-            </span>
           </h4>
           <p>
             <span
@@ -41,21 +35,50 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
             <span
               v-if="network.subNetworks && activity.chainId !== undefined"
               class="network-activity__transaction-info-chainid"
-              >{{ activity.isIncoming ? "on" : "from" }} chain
-              {{ activity.chainId }}</span
+              >{{
+                !!activity.crossChainId
+                  ? `${activity.isIncoming ? "from" : "to"} chain ${
+                      activity.crossChainId
+                    }`
+                  : ""
+              }}
+            </span>
+
+            <span
+              v-if="!!activity.crossChainId"
+              title="Cross-chain transaction"
             >
+              <cross-chain-icon />
+            </span>
           </p>
         </div>
-      </div>
+      </a>
 
       <div class="network-activity__transaction-amount">
+        <button
+          v-if="activity.status === ActivityStatus.needs_continuation"
+          class="network-activity__transaction-finish-tx-button"
+          @click="sendAction"
+        >
+          Send finish tx
+        </button>
+        <span
+          v-if="activity.status === ActivityStatus.waiting_for_spv"
+          class="network-activity__transaction-waiting-for-spv-chip"
+        >
+          Waiting for SPV
+          <send-spinner-animation />
+        </span>
         <h4>
           {{ !activity.isIncoming ? "-" : "" }}
           {{
@@ -69,7 +92,7 @@
           $ {{ $filters.formatFiatValue(getFiatValue).value }}
         </p>
       </div>
-    </a>
+    </div>
   </section>
   <section v-if="activity.type === ActivityType.swap" class="container-empty">
     <section class="network-activity__transaction">
@@ -92,7 +115,10 @@
               >{{ status }}</span
             >
             <transaction-timer
-              v-if="activity.status === ActivityStatus.pending"
+              v-if="
+                activity.status === ActivityStatus.pending ||
+                activity.status === ActivityStatus.executing_continuation
+              "
               :date="activity.timestamp"
             />
             <span v-else-if="activity.timestamp !== 0">{{ date }}</span>
@@ -120,8 +146,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, PropType, ref } from "vue";
+import { useRouter } from "vue-router";
+import { onBeforeMount, computed, onMounted, PropType, ref } from "vue";
 import moment from "moment";
+import { routes as RouterNames } from "@/ui/action/router";
 import TransactionTimer from "./transaction-timer.vue";
 import {
   Activity,
@@ -133,6 +161,11 @@ import { BaseNetwork } from "@/types/base-network";
 import { fromBase } from "@enkryptcom/utils";
 import BigNumber from "bignumber.js";
 import { imageLoadError } from "@/ui/action/utils/misc";
+import { CreateTxFeeObject } from "../../../../../providers/kadena/ui/libs/createTxFeeObject";
+import CrossChainIcon from "@action/icons/common/cross-chain.vue";
+import { KDAToken } from "@/providers/kadena/types/kda-token";
+import SendSpinnerAnimation from "@action/icons/send/send-spinner-animation.vue";
+
 const props = defineProps({
   activity: {
     type: Object as PropType<Activity>,
@@ -142,10 +175,18 @@ const props = defineProps({
     type: Object as PropType<BaseNetwork>,
     default: () => ({}),
   },
+  selectedAccount: {
+    type: Object,
+    default: () => {
+      return "";
+    },
+  },
 });
 
+const router = useRouter();
 const status = ref("~");
 const date = ref("~");
+const kdaToken = ref<KDAToken>();
 
 const transactionURL = computed(() => {
   return props.network.blockExplorerTX.replace(
@@ -158,6 +199,15 @@ const getFiatValue = computed(() => {
     fromBase(props.activity.value, props.activity.token.decimals)
   );
 });
+
+onBeforeMount(async () => {
+  kdaToken.value = new KDAToken({
+    price: "0",
+    symbol: "KDA",
+    decimals: 12,
+  });
+});
+
 onMounted(() => {
   date.value = moment(props.activity.timestamp).fromNow();
   if (
@@ -167,7 +217,9 @@ onMounted(() => {
     status.value =
       props.activity.type === ActivityType.transaction ? "Received" : "Swapped";
   else if (
-    props.activity.status === ActivityStatus.success &&
+    (props.activity.status === ActivityStatus.success ||
+      props.activity.status === ActivityStatus.waiting_for_spv ||
+      props.activity.status === ActivityStatus.continuation_executed) &&
     !props.activity.isIncoming
   )
     status.value =
@@ -186,10 +238,56 @@ onMounted(() => {
   )
     status.value =
       props.activity.type === ActivityType.transaction ? "Sending" : "Swapping";
+  else if (props.activity.status === ActivityStatus.needs_continuation)
+    status.value = "Sent";
+  else if (props.activity.status === ActivityStatus.executing_continuation)
+    status.value = "Sending finish tx";
   else {
     status.value = "Failed";
   }
 });
+
+const sendAction = async () => {
+  const secondStepTransaction = await kdaToken.value!
+    .buildCrossChainSecondStepTransaction!(
+    props.selectedAccount,
+    props.activity.transactionHash,
+    props.activity.spv,
+    props.selectedAccount.isHardware,
+    props.network as KadenaNetwork,
+    props.activity.chainId.toString()
+  );
+
+  const networkApi = (await props.network.api()) as KadenaAPI;
+  const transactionResult = await networkApi.sendLocalTransaction(
+    secondStepTransaction
+  );
+
+  const gasLimit = transactionResult.metaData?.publicMeta?.gasLimit;
+  const gasPrice = transactionResult.metaData?.publicMeta?.gasPrice;
+  const gasFee = gasLimit && gasPrice ? gasLimit * gasPrice : 0;
+
+  const txFeeObject = CreateTxFeeObject(gasFee, 12, kdaToken.value);
+
+  const txVerifyInfo = {
+    transactionType: "finish_crosschain",
+    toChainId: props.activity.crossChainId,
+    pactId: props.activity.transactionHash,
+    spv: props.activity.spv.replaceAll('"', ""),
+    txFee: txFeeObject,
+  };
+
+  const routedRoute = router.resolve({
+    name: RouterNames.verify.name,
+    query: {
+      id: props.network.name,
+      txData: Buffer.from(JSON.stringify(txVerifyInfo), "utf8").toString(
+        "base64"
+      ),
+    },
+  });
+  router.push(routedRoute);
+};
 </script>
 
 <style lang="less">
@@ -208,7 +306,6 @@ onMounted(() => {
     align-items: center;
     flex-direction: row;
     text-decoration: none;
-    cursor: pointer;
     margin: 0 12px;
     border-radius: 10px;
     transition: background 300ms ease-in-out;
@@ -219,9 +316,11 @@ onMounted(() => {
 
     &-info {
       display: flex;
+      text-decoration: none;
       justify-content: flex-start;
       align-items: center;
       flex-direction: row;
+      cursor: pointer;
 
       img {
         max-width: 32px;
@@ -257,10 +356,12 @@ onMounted(() => {
             color: @error;
           }
         }
-      }
 
-      &-crosschain-superscript {
-        color: @secondaryLabel;
+        svg {
+          width: 16px;
+          height: 16px;
+          margin-left: 4px;
+        }
       }
 
       &-status {
@@ -298,6 +399,35 @@ onMounted(() => {
         color: @secondaryLabel;
         margin: 0;
       }
+    }
+
+    &-finish-tx-button {
+      background-color: #ffffff;
+      border: 1.5px solid;
+      font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      padding: 1px 6px;
+      cursor: pointer;
+    }
+
+    &-waiting-for-spv-chip {
+      border: 1.5px solid;
+      font-size: 12px;
+      color: @primary;
+      border-radius: 14px;
+      border-color: @primary;
+      font-style: normal;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      padding: 0 4px;
     }
   }
 }

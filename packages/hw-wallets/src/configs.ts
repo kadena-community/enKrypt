@@ -20,6 +20,8 @@ const ledgerAppNames = {
   [NetworkNames.Polkadot]: "Polkadot",
   [NetworkNames.Karura]: "Karura",
   [NetworkNames.Edgeware]: "Edgeware",
+  [NetworkNames.Kadena]: "Kadena",
+  [NetworkNames.KadenaTestnet]: "Kadena",
 };
 const MessengerName = "enkrypt_hw_wallets";
 
@@ -73,6 +75,11 @@ const bip44Paths = {
     path: "m/0'/0'/{index}'",
     basePath: "m/0'/0'/0",
     label: "Substrate",
+  },
+  kadenaLedger: {
+    path: "m/44'/626'/{index}'/0/0",
+    basePath: "m/44'/626'",
+    label: "Kadena",
   },
 };
 export { walletConfigs, MessengerName, ledgerAppNames, bip44Paths };
